@@ -78,6 +78,16 @@ python -m astro_denoise_metrics \
 }
 ```
 
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Cubren las métricas sobre catálogos/imágenes sintéticas y el protocolo CLI
+end-to-end (FITS + truth catalog temporales).
+
 ---
 Este submódulo forma parte de la plataforma `astro-denoise`; véase
 [`CONTEXT_v2.md`](../../CONTEXT_v2.md) para arquitectura y criterios.
