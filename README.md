@@ -32,6 +32,8 @@ opcionalmente `flux` / `mag`.
 | `ssim(original, denoised)` | Índice de similitud estructural |
 | `sky_sigma(image, mask=None)` | Ruido residual de fondo (std sigma-clipped) |
 | `detect_sources(image, thresh=1.5, minarea=5)` | Detección con SEP (fallback photutils), retorna `x, y, flux` |
+| `load_dc2_truth(path, band)` | Lee `ra`/`dec`/`flux_<band>` de un Parquet DC2 (filtra duplicados) |
+| `project_truth(truth, wcs, shape, mag_limit=None)` | Proyecta el truth al espacio de píxeles vía WCS |
 
 ```python
 from astro_denoise_metrics import completeness, purity, detect_sources
@@ -54,7 +56,31 @@ python -m astro_denoise_metrics \
 
 - `--truth`: tabla binaria FITS con columnas `x`, `y`, `flux` (y opcionalmente
   `mag`); se reconocen alias estilo SExtractor (`X_IMAGE`, `xcentroid`, …).
+  También acepta un catálogo Parquet DC2 `truth_match` (ver abajo).
 - `--original`: imagen de referencia sin ruido; habilita PSNR/SSIM.
+
+### Catálogo truth DC2 (Parquet)
+
+Si `--truth` apunta a un Parquet del DESC DC2 (`truth_tract*.parquet`, con
+`ra`/`dec` en grados y flujos por banda en nJy), el CLI proyecta las fuentes
+sobre el WCS de la imagen `--input` y filtra a sus límites:
+
+```bash
+python -m astro_denoise_metrics \
+    --input denoised.fits \
+    --truth truth_tract3828.parquet \
+    --band z --mag-limit 26 \
+    --output results.json
+```
+
+- `--band` (obligatorio con Parquet): selecciona `flux_<band>` (u/g/r/i/z/y).
+- `--mag-limit`: descarta fuentes truth más débiles que esa magnitud AB
+  (`m = -2.5·log10(f/nJy) + 31.4`), útil para restringir el truth al rango
+  detectable de la imagen.
+- La imagen `--input` debe conservar un WCS válido para su grilla de píxeles
+  (al recortar coadds usar p. ej. `astropy.nddata.Cutout2D`, que lo ajusta).
+- Con truth DC2, `photometric_accuracy` compara flujo instrumental (ADU)
+  contra nJy: solo la dispersión relativa es interpretable, no el bias.
 - `results.json` contiene todas las métricas; stdout emite una línea JSON de
   estado (`{"module": "astro-denoise-metrics", "status": "ok", ...}`) para que
   orquestadores como `astro-denoise-bench` parseen el resultado.

@@ -4,9 +4,11 @@ Usage:
     python -m astro_denoise_metrics --input denoised.fits --truth truth.fits \
         --output results.json [--original clean.fits] [--radius 2.0]
 
-The truth file is a FITS binary table with columns x, y and flux (and
-optionally mag). Results are written as structured JSON and a summary
-table is printed to the console.
+The truth file is either a FITS binary table with pixel columns x, y and
+flux (optionally mag), or a DESC DC2 ``truth_match`` Parquet catalog
+(``ra``/``dec``/``flux_<band>``) — the latter requires ``--band`` and is
+projected onto the input image's WCS. Results are written as structured
+JSON and a summary table is printed to the console.
 """
 
 from __future__ import annotations
@@ -42,13 +44,18 @@ COLUMN_ALIASES = {
 }
 
 
-def load_image(path):
-    """Return the first 2-D image HDU in a FITS file."""
+def load_image_and_header(path):
+    """Return (data, header) for the first 2-D image HDU in a FITS file."""
     with fits.open(path) as hdul:
         for hdu in hdul:
             if hdu.data is not None and np.asarray(hdu.data).ndim == 2:
-                return np.asarray(hdu.data, dtype=np.float64)
+                return np.asarray(hdu.data, dtype=np.float64), hdu.header.copy()
     raise ValueError(f"{path}: no 2-D image HDU found")
+
+
+def load_image(path):
+    """Return the first 2-D image HDU in a FITS file."""
+    return load_image_and_header(path)[0]
 
 
 def load_truth(path):
@@ -91,9 +98,23 @@ def default_mag_bins(truth):
     return np.linspace(np.floor(mags.min()), np.ceil(mags.max()), 11)
 
 
+def resolve_truth(args, denoised, header):
+    """Load the truth catalog in pixel space, projecting DC2 Parquet via WCS."""
+    if args.truth.suffix.lower() == ".parquet":
+        if not args.band:
+            raise ValueError("--band is required when --truth is a DC2 Parquet catalog")
+        from astropy.wcs import WCS
+
+        from .truth import load_dc2_truth, project_truth
+
+        sky = load_dc2_truth(args.truth, args.band)
+        return project_truth(sky, WCS(header), denoised.shape, mag_limit=args.mag_limit)
+    return load_truth(args.truth)
+
+
 def evaluate(args):
-    denoised = load_image(args.input)
-    truth = load_truth(args.truth)
+    denoised, header = load_image_and_header(args.input)
+    truth = resolve_truth(args, denoised, header)
     catalog = detect_sources(denoised, thresh=args.thresh, minarea=args.minarea)
 
     results = {
@@ -105,6 +126,8 @@ def evaluate(args):
             "radius": args.radius,
             "thresh": args.thresh,
             "minarea": args.minarea,
+            "band": args.band,
+            "mag_limit": args.mag_limit,
         },
         "n_detected": int(len(catalog)),
         "n_truth": int(len(truth["x"])),
@@ -160,7 +183,18 @@ def build_parser():
         "--truth",
         required=True,
         type=Path,
-        help="FITS truth catalog (binary table with x, y, flux)",
+        help="Truth catalog: FITS table (x, y, flux) or DC2 Parquet (needs --band)",
+    )
+    parser.add_argument(
+        "--band",
+        default=None,
+        help="DC2 band (u/g/r/i/z/y) selecting flux_<band> in a Parquet truth catalog",
+    )
+    parser.add_argument(
+        "--mag-limit",
+        type=float,
+        default=None,
+        help="Drop Parquet truth sources fainter than this AB magnitude",
     )
     parser.add_argument("--output", required=True, type=Path, help="Path of the JSON results file")
     parser.add_argument(
