@@ -14,6 +14,9 @@ dependencies = [
     "rich>=13.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 astro-denoise-bench = "astro_denoise_bench.__main__:main"
 
