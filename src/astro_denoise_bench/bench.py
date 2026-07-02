@@ -42,6 +42,7 @@ ENTRY_POINT_GROUP = "astro_denoise.methods"
 # discovery
 # ---------------------------------------------------------------------------
 
+
 def discover_methods():
     """Map algorithm name -> entry point for installed astro-denoise modules."""
     return {ep.name: ep for ep in entry_points(group=ENTRY_POINT_GROUP)}
@@ -50,6 +51,7 @@ def discover_methods():
 # ---------------------------------------------------------------------------
 # dataset
 # ---------------------------------------------------------------------------
+
 
 def collect_patches(data_dir):
     """Return (noisy_path, clean_path_or_None) pairs found in ``data_dir``."""
@@ -78,6 +80,7 @@ def load_image(path):
 # metrics (astro_denoise_metrics when available, numpy fallback otherwise)
 # ---------------------------------------------------------------------------
 
+
 def _fallback_psnr(original, denoised):
     mse = float(np.mean((original - denoised) ** 2))
     if mse == 0:
@@ -100,7 +103,7 @@ def _fallback_sky_sigma(image):
 def evaluate_patch(denoised, clean):
     """Metrics for one denoised patch; richer if astro_denoise_metrics exists."""
     try:
-        from astro_denoise_metrics import psnr, ssim, sky_sigma
+        from astro_denoise_metrics import psnr, sky_sigma, ssim
 
         metrics = {"sky_sigma": sky_sigma(denoised)}
         if clean is not None:
@@ -118,16 +121,15 @@ def evaluate_patch(denoised, clean):
 # execution
 # ---------------------------------------------------------------------------
 
-def run_method_subprocess(algo, noisy, output, config=None, python=None,
-                          timeout=3600):
+
+def run_method_subprocess(algo, noisy, output, config=None, python=None, timeout=3600):
     """Invoke a method module via the standard CLI protocol.
 
     ``python`` selects the interpreter (e.g. the module's own venv);
     defaults to the current one. Returns the parsed stdout JSON.
     """
     module = f"astro_denoise_{algo}"
-    cmd = [python or sys.executable, "-m", module,
-           "--input", str(noisy), "--output", str(output)]
+    cmd = [python or sys.executable, "-m", module, "--input", str(noisy), "--output", str(output)]
     if config:
         cmd += ["--config", str(config)]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -142,8 +144,7 @@ def run_method_subprocess(algo, noisy, output, config=None, python=None,
     raise RuntimeError(f"{module} produced no JSON status on stdout")
 
 
-def run_benchmark(algo, data_dir, output_dir=None, config=None, python=None,
-                  progress=None):
+def run_benchmark(algo, data_dir, output_dir=None, config=None, python=None, progress=None):
     """Run ``algo`` over every patch in ``data_dir`` and gather metrics.
 
     Returns the full report dict. ``progress`` is an optional callback
@@ -165,9 +166,7 @@ def run_benchmark(algo, data_dir, output_dir=None, config=None, python=None,
         record = {"patch": noisy_path.name, "output": str(out_path)}
         start = time.perf_counter()
         try:
-            status = run_method_subprocess(
-                algo, noisy_path, out_path, config=config, python=python
-            )
+            status = run_method_subprocess(algo, noisy_path, out_path, config=config, python=python)
             record["wall_time_s"] = round(time.perf_counter() - start, 4)
             record["status"] = status.get("status", "ok")
             record["method_meta"] = status
@@ -204,9 +203,11 @@ def summarize(runs):
             round(len(ok) / sum(times), 4) if sum(times) > 0 else None
         )
         for key in ("psnr", "ssim", "sky_sigma"):
-            values = [r["metrics"][key] for r in ok
-                      if key in r.get("metrics", {})
-                      and np.isfinite(r["metrics"][key])]
+            values = [
+                r["metrics"][key]
+                for r in ok
+                if key in r.get("metrics", {}) and np.isfinite(r["metrics"][key])
+            ]
             if values:
                 summary[f"mean_{key}"] = round(statistics.fmean(values), 4)
     return summary

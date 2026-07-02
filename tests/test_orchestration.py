@@ -15,7 +15,7 @@ from astropy.io import fits
 from astro_denoise_bench.__main__ import main
 from astro_denoise_bench.bench import run_benchmark, run_method_subprocess
 
-FAKE_MAIN = '''
+FAKE_MAIN = """
 import argparse, json
 from pathlib import Path
 import numpy as np
@@ -31,7 +31,7 @@ with fits.open(args.input) as hdul:
     data = np.asarray(hdul[0].data, dtype=np.float64)
 fits.PrimaryHDU(data.astype(np.float32)).writeto(args.output, overwrite=True)
 print(json.dumps({"algorithm": "fake", "status": "ok"}))
-'''
+"""
 
 
 @pytest.fixture
@@ -53,28 +53,20 @@ def dataset(tmp_path):
     for i in range(2):
         clean = np.full((32, 32), 100.0)
         noisy = clean + rng.normal(0, 2.0, clean.shape)
-        fits.PrimaryHDU(clean.astype(np.float32)).writeto(
-            data_dir / f"p{i}_clean.fits"
-        )
-        fits.PrimaryHDU(noisy.astype(np.float32)).writeto(
-            data_dir / f"p{i}_noisy.fits"
-        )
+        fits.PrimaryHDU(clean.astype(np.float32)).writeto(data_dir / f"p{i}_clean.fits")
+        fits.PrimaryHDU(noisy.astype(np.float32)).writeto(data_dir / f"p{i}_noisy.fits")
     return data_dir
 
 
 def test_run_method_subprocess_protocol(fake_method, dataset, tmp_path):
-    status = run_method_subprocess(
-        fake_method, dataset / "p0_noisy.fits", tmp_path / "out.fits"
-    )
+    status = run_method_subprocess(fake_method, dataset / "p0_noisy.fits", tmp_path / "out.fits")
     assert status == {"algorithm": "fake", "status": "ok"}
     assert (tmp_path / "out.fits").exists()
 
 
 def test_run_method_subprocess_missing_module_raises(dataset, tmp_path):
     with pytest.raises(RuntimeError):
-        run_method_subprocess(
-            "does_not_exist", dataset / "p0_noisy.fits", tmp_path / "out.fits"
-        )
+        run_method_subprocess("does_not_exist", dataset / "p0_noisy.fits", tmp_path / "out.fits")
 
 
 def test_run_benchmark_full_report(fake_method, dataset, tmp_path):
@@ -99,10 +91,18 @@ def test_run_benchmark_empty_dir_raises(tmp_path):
 
 def test_cli_writes_report_and_status(fake_method, dataset, tmp_path, capsys):
     report_path = tmp_path / "report.json"
-    rc = main([
-        "--algo", fake_method, "--data-dir", str(dataset),
-        "--output", str(report_path), "--out-dir", str(tmp_path / "out"),
-    ])
+    rc = main(
+        [
+            "--algo",
+            fake_method,
+            "--data-dir",
+            str(dataset),
+            "--output",
+            str(report_path),
+            "--out-dir",
+            str(tmp_path / "out"),
+        ]
+    )
     assert rc == 0
     status = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert status["status"] == "ok"

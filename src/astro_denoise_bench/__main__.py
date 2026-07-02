@@ -38,19 +38,30 @@ def main(argv=None):
         description="Orchestrate denoising benchmarks over FITS patch datasets.",
     )
     parser.add_argument("--algo", help="Algorithm name (e.g. bm3d, unet)")
-    parser.add_argument("--data-dir", type=Path,
-                        help="Directory with *_noisy.fits / *_clean.fits patches")
-    parser.add_argument("--output", type=Path, default=Path("report.json"),
-                        help="Path of the JSON report (default: report.json)")
-    parser.add_argument("--config", type=Path, default=None,
-                        help="Config JSON forwarded to the method module")
-    parser.add_argument("--out-dir", type=Path, default=None,
-                        help="Where to write denoised patches")
-    parser.add_argument("--python", default=None,
-                        help="Interpreter used to invoke the method module "
-                             "(e.g. the module's own .venv/bin/python)")
-    parser.add_argument("--list", action="store_true",
-                        help="List discovered astro-denoise method modules")
+    parser.add_argument(
+        "--data-dir", type=Path, help="Directory with *_noisy.fits / *_clean.fits patches"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("report.json"),
+        help="Path of the JSON report (default: report.json)",
+    )
+    parser.add_argument(
+        "--config", type=Path, default=None, help="Config JSON forwarded to the method module"
+    )
+    parser.add_argument(
+        "--out-dir", type=Path, default=None, help="Where to write denoised patches"
+    )
+    parser.add_argument(
+        "--python",
+        default=None,
+        help="Interpreter used to invoke the method module "
+        "(e.g. the module's own .venv/bin/python)",
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List discovered astro-denoise method modules"
+    )
     args = parser.parse_args(argv)
 
     if args.list:
@@ -60,10 +71,16 @@ def main(argv=None):
                 console.print(f"[bold]{name}[/bold] -> {ep.value}")
         else:
             console.print("no astro_denoise.methods entry points installed")
-        print(json.dumps({"module": "astro-denoise-bench",
-                          "version": __version__,
-                          "status": "ok",
-                          "methods": sorted(methods)}))
+        print(
+            json.dumps(
+                {
+                    "module": "astro-denoise-bench",
+                    "version": __version__,
+                    "status": "ok",
+                    "methods": sorted(methods),
+                }
+            )
+        )
         return 0
 
     if not args.algo or not args.data_dir:
@@ -74,25 +91,42 @@ def main(argv=None):
 
     try:
         report = run_benchmark(
-            args.algo, args.data_dir, output_dir=args.out_dir,
-            config=args.config, python=args.python, progress=progress,
+            args.algo,
+            args.data_dir,
+            output_dir=args.out_dir,
+            config=args.config,
+            python=args.python,
+            progress=progress,
         )
     except Exception as exc:
         console.print(f"[red]error:[/red] {exc}")
-        print(json.dumps({"module": "astro-denoise-bench",
-                          "version": __version__,
-                          "status": "error", "error": str(exc)}))
+        print(
+            json.dumps(
+                {
+                    "module": "astro-denoise-bench",
+                    "version": __version__,
+                    "status": "error",
+                    "error": str(exc),
+                }
+            )
+        )
         return 1
 
     report["version"] = __version__
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2))
     print_report(console, report)
-    print(json.dumps({"module": "astro-denoise-bench",
-                      "version": __version__,
-                      "status": "ok",
-                      "report": str(args.output),
-                      "summary": report["summary"]}))
+    print(
+        json.dumps(
+            {
+                "module": "astro-denoise-bench",
+                "version": __version__,
+                "status": "ok",
+                "report": str(args.output),
+                "summary": report["summary"],
+            }
+        )
+    )
     return 0
 
 

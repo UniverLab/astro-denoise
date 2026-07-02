@@ -75,10 +75,8 @@ class TestFallbackMetrics:
 class TestSummarize:
     def test_aggregates_ok_runs(self):
         runs = [
-            {"status": "ok", "wall_time_s": 1.0,
-             "metrics": {"psnr": 30.0, "sky_sigma": 1.0}},
-            {"status": "ok", "wall_time_s": 3.0,
-             "metrics": {"psnr": 40.0, "sky_sigma": 3.0}},
+            {"status": "ok", "wall_time_s": 1.0, "metrics": {"psnr": 30.0, "sky_sigma": 1.0}},
+            {"status": "ok", "wall_time_s": 3.0, "metrics": {"psnr": 40.0, "sky_sigma": 3.0}},
             {"status": "error", "wall_time_s": 0.1},
         ]
         summary = summarize(runs)
@@ -95,8 +93,7 @@ class TestSummarize:
 
     def test_skips_non_finite_metrics(self):
         runs = [
-            {"status": "ok", "wall_time_s": 1.0,
-             "metrics": {"psnr": float("inf")}},
+            {"status": "ok", "wall_time_s": 1.0, "metrics": {"psnr": float("inf")}},
             {"status": "ok", "wall_time_s": 1.0, "metrics": {"psnr": 20.0}},
         ]
         assert summarize(runs)["mean_psnr"] == pytest.approx(20.0)

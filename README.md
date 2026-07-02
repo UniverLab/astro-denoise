@@ -22,11 +22,12 @@ computacionales desde fuera del proceso Python; el protocolo CLI es el mismo.)
 ## Instalación
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e .   # opcional: registra el comando astro-denoise-bench
+uv sync --all-extras
 ```
+
+Esto crea `.venv/` e instala el paquete en modo editable (`src/astro_denoise_bench/`),
+registrando el comando `astro-denoise-bench` y las dependencias de desarrollo
+(pytest, ruff, mypy).
 
 ## CLI
 
@@ -100,14 +101,38 @@ metadatos del método, métricas) y un bloque `summary`:
 ## Tests
 
 ```bash
-pip install -e ".[dev]"
-pytest
+uv run pytest
 ```
 
 Además de las unidades (colección de patches, métricas fallback, summary),
 la orquestación se prueba end-to-end contra un módulo de método falso
 (`astro_denoise_fake`) materializado en un `PYTHONPATH` temporal, de modo
 que el protocolo real de subprocesos se ejercita sin instalar denoisers.
+
+## Desarrollo
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run mypy src/
+```
+
+Las cuatro comprobaciones (format, lint, mypy, pytest) corren en CI vía el
+workflow reusable [`UniverLab/workflows`](https://github.com/UniverLab/workflows).
+
+## Estructura del proyecto
+
+```
+astro-denoise-bench/
+├── pyproject.toml
+├── src/
+│   └── astro_denoise_bench/
+│       ├── __init__.py
+│       ├── __main__.py       # CLI entry point
+│       └── bench.py
+├── tests/
+└── README.md
+```
 
 ---
 Este módulo forma parte de la plataforma `astro-denoise`; véase
