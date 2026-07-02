@@ -97,6 +97,18 @@ metadatos del método, métricas) y un bloque `summary`:
 }
 ```
 
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Además de las unidades (colección de patches, métricas fallback, summary),
+la orquestación se prueba end-to-end contra un módulo de método falso
+(`astro_denoise_fake`) materializado en un `PYTHONPATH` temporal, de modo
+que el protocolo real de subprocesos se ejercita sin instalar denoisers.
+
 ---
 Este módulo forma parte de la plataforma `astro-denoise`; véase
 [`CONTEXT_v2.md`](../../CONTEXT_v2.md) para arquitectura y motivación.
