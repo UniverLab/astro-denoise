@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astro-denoise-metrics"
+version = "0.1.0"
+description = "Scientific evaluation metrics for astronomical image denoising"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "astropy>=6.0",
+    "sep>=1.2",
+    "photutils>=1.10",
+    "scikit-image>=0.22",
+    "rich>=13.0",
+]
+
+[project.scripts]
+astro-denoise-metrics = "astro_denoise_metrics.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["astro_denoise_metrics*"]
