@@ -19,10 +19,10 @@ from scipy.spatial import cKDTree
 from skimage.metrics import peak_signal_noise_ratio as _sk_psnr
 from skimage.metrics import structural_similarity as _sk_ssim
 
-
 # ---------------------------------------------------------------------------
 # catalog helpers
 # ---------------------------------------------------------------------------
+
 
 def _column(catalog, name):
     """Extract a column from a Table / structured array / dict as float64."""
@@ -81,6 +81,7 @@ def match_catalogs(catalog, truth, radius):
 # ---------------------------------------------------------------------------
 # source-recovery metrics
 # ---------------------------------------------------------------------------
+
 
 def completeness(catalog, truth, radius):
     """Fraction of truth sources recovered by the detection catalog.
@@ -168,7 +169,7 @@ def photometric_accuracy(catalog, truth, radius=2.0):
     rel_err = (f_det - f_true) / f_true
     mad = np.median(np.abs(rel_err - np.median(rel_err)))
 
-    pos = (f_det > 0)
+    pos = f_det > 0
     if np.any(pos):
         dmag = -2.5 * np.log10(f_det[pos] / f_true[pos])
         mag_bias = float(np.median(dmag))
@@ -189,6 +190,7 @@ def photometric_accuracy(catalog, truth, radius=2.0):
 # ---------------------------------------------------------------------------
 # image-quality metrics
 # ---------------------------------------------------------------------------
+
 
 def _data_range(reference):
     rng = float(np.nanmax(reference) - np.nanmin(reference))

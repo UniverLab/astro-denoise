@@ -10,11 +10,11 @@ calidad de imagen (PSNR, SSIM, σ_sky).
 ## Instalación
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e .   # opcional: registra el console script astro-denoise-metrics
+uv sync --all-extras
 ```
+
+Esto crea `.venv/` e instala el paquete en modo editable (`src/astro_denoise_metrics/`)
+junto con las dependencias de desarrollo (pytest, ruff, mypy).
 
 ## API
 
@@ -81,12 +81,37 @@ python -m astro_denoise_metrics \
 ## Tests
 
 ```bash
-pip install -e ".[dev]"
-pytest
+uv run pytest
 ```
 
 Cubren las métricas sobre catálogos/imágenes sintéticas y el protocolo CLI
 end-to-end (FITS + truth catalog temporales).
+
+## Desarrollo
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run mypy src/
+```
+
+Las cuatro comprobaciones (format, lint, mypy, pytest) corren en CI vía el
+workflow reusable [`UniverLab/workflows`](https://github.com/UniverLab/workflows).
+
+## Estructura del proyecto
+
+```
+astro-denoise-metrics/
+├── pyproject.toml
+├── src/
+│   └── astro_denoise_metrics/
+│       ├── __init__.py
+│       ├── __main__.py       # CLI entry point
+│       ├── detect.py
+│       └── metrics.py
+├── tests/
+└── README.md
+```
 
 ---
 Este submódulo forma parte de la plataforma `astro-denoise`; véase

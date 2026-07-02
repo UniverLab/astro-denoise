@@ -28,7 +28,7 @@ def synthetic_scene(tmp_path):
     fluxes = rng.uniform(2000, 8000, 8)
 
     clean = np.full((size, size), 100.0)
-    for x, y, f in zip(xs, ys, fluxes):
+    for x, y, f in zip(xs, ys, fluxes, strict=True):
         clean += gaussian_source((size, size), x, y, f)
     noisy = clean + rng.normal(0, noise_sigma, clean.shape)
 
@@ -53,13 +53,20 @@ def test_detect_sources_finds_bright_sources(synthetic_scene):
 def test_cli_writes_structured_results(synthetic_scene, tmp_path, capsys):
     image_path, clean_path, truth_path = synthetic_scene
     output = tmp_path / "results.json"
-    rc = main([
-        "--input", str(image_path),
-        "--truth", str(truth_path),
-        "--original", str(clean_path),
-        "--output", str(output),
-        "--thresh", "3.0",
-    ])
+    rc = main(
+        [
+            "--input",
+            str(image_path),
+            "--truth",
+            str(truth_path),
+            "--original",
+            str(clean_path),
+            "--output",
+            str(output),
+            "--thresh",
+            "3.0",
+        ]
+    )
     assert rc == 0
 
     status = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
@@ -76,11 +83,16 @@ def test_cli_writes_structured_results(synthetic_scene, tmp_path, capsys):
 
 
 def test_cli_reports_error_on_missing_input(tmp_path, capsys):
-    rc = main([
-        "--input", str(tmp_path / "missing.fits"),
-        "--truth", str(tmp_path / "missing_truth.fits"),
-        "--output", str(tmp_path / "out.json"),
-    ])
+    rc = main(
+        [
+            "--input",
+            str(tmp_path / "missing.fits"),
+            "--truth",
+            str(tmp_path / "missing_truth.fits"),
+            "--output",
+            str(tmp_path / "out.json"),
+        ]
+    )
     assert rc == 1
     status = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert status["status"] == "error"

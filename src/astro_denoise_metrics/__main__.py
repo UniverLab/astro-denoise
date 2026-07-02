@@ -61,9 +61,7 @@ def load_truth(path):
                 out[canonical] = np.asarray(table[alias], dtype=np.float64)
                 break
     if "x" not in out or "y" not in out:
-        raise ValueError(
-            f"{path}: truth catalog needs x/y columns; found {table.colnames}"
-        )
+        raise ValueError(f"{path}: truth catalog needs x/y columns; found {table.colnames}")
     return out
 
 
@@ -112,15 +110,11 @@ def evaluate(args):
         "n_truth": int(len(truth["x"])),
         "completeness": completeness(catalog, truth, args.radius),
         "purity": purity(catalog, truth, args.radius),
-        "sky_sigma": sky_sigma(
-            denoised, mask=source_mask(denoised, thresh=args.thresh)
-        ),
+        "sky_sigma": sky_sigma(denoised, mask=source_mask(denoised, thresh=args.thresh)),
     }
 
     if "flux" in truth:
-        results["photometric_accuracy"] = photometric_accuracy(
-            catalog, truth, radius=args.radius
-        )
+        results["photometric_accuracy"] = photometric_accuracy(catalog, truth, radius=args.radius)
         bins = default_mag_bins(truth)
         if bins is not None:
             results["completeness_vs_mag"] = completeness_vs_mag(
@@ -145,8 +139,7 @@ def print_summary(console, results):
     table = RichTable(title="astro-denoise-metrics results")
     table.add_column("Metric")
     table.add_column("Value", justify="right")
-    for key in ("n_detected", "n_truth", "completeness", "purity",
-                "sky_sigma", "psnr", "ssim"):
+    for key in ("n_detected", "n_truth", "completeness", "purity", "sky_sigma", "psnr", "ssim"):
         if key in results and results[key] is not None:
             value = results[key]
             table.add_row(key, f"{value:.4f}" if isinstance(value, float) else str(value))
@@ -162,20 +155,26 @@ def build_parser():
         prog="python -m astro_denoise_metrics",
         description="Scientific metrics for denoised astronomical images.",
     )
-    parser.add_argument("--input", required=True, type=Path,
-                        help="Denoised FITS image to evaluate")
-    parser.add_argument("--truth", required=True, type=Path,
-                        help="FITS truth catalog (binary table with x, y, flux)")
-    parser.add_argument("--output", required=True, type=Path,
-                        help="Path of the JSON results file")
-    parser.add_argument("--original", type=Path, default=None,
-                        help="Noise-free reference image for PSNR/SSIM")
-    parser.add_argument("--radius", type=float, default=2.0,
-                        help="Matching radius in pixels (default: 2.0)")
-    parser.add_argument("--thresh", type=float, default=1.5,
-                        help="Detection threshold in background-RMS units")
-    parser.add_argument("--minarea", type=int, default=5,
-                        help="Minimum connected pixels per detection")
+    parser.add_argument("--input", required=True, type=Path, help="Denoised FITS image to evaluate")
+    parser.add_argument(
+        "--truth",
+        required=True,
+        type=Path,
+        help="FITS truth catalog (binary table with x, y, flux)",
+    )
+    parser.add_argument("--output", required=True, type=Path, help="Path of the JSON results file")
+    parser.add_argument(
+        "--original", type=Path, default=None, help="Noise-free reference image for PSNR/SSIM"
+    )
+    parser.add_argument(
+        "--radius", type=float, default=2.0, help="Matching radius in pixels (default: 2.0)"
+    )
+    parser.add_argument(
+        "--thresh", type=float, default=1.5, help="Detection threshold in background-RMS units"
+    )
+    parser.add_argument(
+        "--minarea", type=int, default=5, help="Minimum connected pixels per detection"
+    )
     return parser
 
 
@@ -185,17 +184,31 @@ def main(argv=None):
     try:
         results = _nan_to_none(evaluate(args))
     except Exception as exc:  # surface a structured error for orchestrators
-        print(json.dumps({"module": "astro-denoise-metrics",
-                          "version": __version__,
-                          "status": "error", "error": str(exc)}))
+        print(
+            json.dumps(
+                {
+                    "module": "astro-denoise-metrics",
+                    "version": __version__,
+                    "status": "error",
+                    "error": str(exc),
+                }
+            )
+        )
         console.print(f"[red]error:[/red] {exc}")
         return 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2))
     print_summary(console, results)
-    print(json.dumps({"module": "astro-denoise-metrics",
-                      "version": __version__,
-                      "status": "ok", "output": str(args.output)}))
+    print(
+        json.dumps(
+            {
+                "module": "astro-denoise-metrics",
+                "version": __version__,
+                "status": "ok",
+                "output": str(args.output),
+            }
+        )
+    )
     return 0
 
 

@@ -2,16 +2,16 @@
 
 __version__ = "0.1.0"
 
+from .detect import detect_sources
 from .metrics import (
     completeness,
-    purity,
     completeness_vs_mag,
     photometric_accuracy,
     psnr,
-    ssim,
+    purity,
     sky_sigma,
+    ssim,
 )
-from .detect import detect_sources
 
 __all__ = [
     "completeness",

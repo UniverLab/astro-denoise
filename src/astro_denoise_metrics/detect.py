@@ -28,9 +28,7 @@ def _detect_sep(image, thresh, minarea):
     data = np.ascontiguousarray(image, dtype=np.float32)
     bkg = _sep.Background(data)
     data_sub = data - bkg.back()
-    objects = _sep.extract(
-        data_sub, thresh, err=bkg.globalrms, minarea=minarea
-    )
+    objects = _sep.extract(data_sub, thresh, err=bkg.globalrms, minarea=minarea)
     return _as_catalog(objects["x"], objects["y"], objects["flux"])
 
 
@@ -45,7 +43,8 @@ def _detect_photutils(image, thresh, minarea):
         return _as_catalog([], [], [])
     cat = SourceCatalog(data - median, segm)
     return _as_catalog(
-        np.asarray(cat.xcentroid), np.asarray(cat.ycentroid),
+        np.asarray(cat.xcentroid),
+        np.asarray(cat.ycentroid),
         np.asarray(cat.segment_flux),
     )
 
@@ -79,8 +78,11 @@ def source_mask(image, thresh=1.5, minarea=5, dilate=3):
         d32 = np.ascontiguousarray(data, dtype=np.float32)
         bkg = _sep.Background(d32)
         _, segmap = _sep.extract(
-            d32 - bkg.back(), thresh, err=bkg.globalrms,
-            minarea=minarea, segmentation_map=True,
+            d32 - bkg.back(),
+            thresh,
+            err=bkg.globalrms,
+            minarea=minarea,
+            segmentation_map=True,
         )
         mask = segmap > 0
     else:
