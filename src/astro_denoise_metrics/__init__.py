@@ -1,14 +1,20 @@
 """astro-denoise-metrics: scientific evaluation metrics for astronomical image denoising."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .detect import detect_sources
 from .metrics import (
     completeness,
     completeness_vs_mag,
+    detection_rate,
+    flux_snr,
+    fourier_sharpness,
+    mae,
+    mse,
     photometric_accuracy,
     psnr,
     purity,
+    rmse,
     sky_sigma,
     ssim,
 )
@@ -19,8 +25,14 @@ __all__ = [
     "purity",
     "completeness_vs_mag",
     "photometric_accuracy",
+    "detection_rate",
+    "flux_snr",
+    "fourier_sharpness",
     "psnr",
     "ssim",
+    "mse",
+    "rmse",
+    "mae",
     "sky_sigma",
     "detect_sources",
     "load_dc2_truth",

@@ -224,3 +224,93 @@ def sky_sigma(image, mask=None):
     image = np.asarray(image, dtype=np.float64)
     _, _, std = sigma_clipped_stats(image, mask=mask, sigma=3.0, maxiters=5)
     return float(std)
+
+
+def mse(original, denoised):
+    """Mean squared error of ``denoised`` against ``original``."""
+    original = np.asarray(original, dtype=np.float64)
+    denoised = np.asarray(denoised, dtype=np.float64)
+    return float(np.mean((original - denoised) ** 2))
+
+
+def rmse(original, denoised):
+    """Root mean squared error of ``denoised`` against ``original``."""
+    return float(np.sqrt(mse(original, denoised)))
+
+
+def mae(original, denoised):
+    """Mean absolute error of ``denoised`` against ``original``."""
+    original = np.asarray(original, dtype=np.float64)
+    denoised = np.asarray(denoised, dtype=np.float64)
+    return float(np.mean(np.abs(original - denoised)))
+
+
+def fourier_sharpness(image, freq_cutoff=0.5):
+    """Spectral sharpness S_F: high-frequency fraction of the power spectrum.
+
+    Following the AstroClearNet-style sharpness diagnostic, computes the
+    fraction of (DC-removed) Fourier power carried by radial frequencies
+    above ``freq_cutoff`` (in units of the Nyquist frequency). Denoising
+    that oversmooths an image suppresses its high frequencies and lowers
+    S_F; hallucinated high-frequency artifacts raise it.
+    """
+    image = np.asarray(image, dtype=np.float64)
+    data = np.nan_to_num(image - np.nanmean(image))
+    power = np.abs(np.fft.fftshift(np.fft.fft2(data))) ** 2
+
+    ny, nx = data.shape
+    fy = np.fft.fftshift(np.fft.fftfreq(ny))
+    fx = np.fft.fftshift(np.fft.fftfreq(nx))
+    # radial frequency normalized so the Nyquist frequency (0.5) maps to 1.0
+    radius = np.sqrt(fy[:, None] ** 2 + fx[None, :] ** 2) / 0.5
+
+    total = float(power.sum())
+    if total == 0:
+        return 0.0
+    return float(power[radius > freq_cutoff].sum() / total)
+
+
+def flux_snr(catalog, sigma):
+    """Median aperture signal-to-noise ratio of the detected sources.
+
+    Each source's SNR is estimated as ``flux / (sigma * sqrt(npix))``,
+    the flux over the background-noise contribution of its footprint.
+    Requires the catalog's ``npix`` column (source footprint area);
+    returns NaN when the catalog is empty or lacks the column.
+    """
+    try:
+        flux = _column(catalog, "flux")
+        npix = _column(catalog, "npix")
+    except KeyError:
+        return float("nan")
+    if len(flux) == 0 or sigma <= 0:
+        return float("nan")
+    valid = np.isfinite(flux) & (npix > 0)
+    if not np.any(valid):
+        return float("nan")
+    snr = flux[valid] / (sigma * np.sqrt(npix[valid]))
+    return float(np.median(snr))
+
+
+def detection_rate(image, thresholds, minarea=5, truth=None, radius=2.0):
+    """Source detection rate as a function of the detection threshold.
+
+    BGRem-style diagnostic: runs the detector at each threshold (in
+    background-RMS units) and reports the number of detections; when a
+    ``truth`` catalog is given it also reports completeness and purity
+    per threshold.
+    """
+    from .detect import detect_sources
+
+    thresholds = [float(t) for t in thresholds]
+    result = {"thresholds": thresholds, "n_detected": []}
+    if truth is not None:
+        result["completeness"] = []
+        result["purity"] = []
+    for thresh in thresholds:
+        catalog = detect_sources(image, thresh=thresh, minarea=minarea)
+        result["n_detected"].append(int(len(catalog)))
+        if truth is not None:
+            result["completeness"].append(completeness(catalog, truth, radius))
+            result["purity"].append(purity(catalog, truth, radius))
+    return result

@@ -15,12 +15,12 @@ except ImportError:  # pragma: no cover - depends on environment
     _sep = None
 
 
-_CATALOG_DTYPE = np.dtype([("x", "f8"), ("y", "f8"), ("flux", "f8")])
+_CATALOG_DTYPE = np.dtype([("x", "f8"), ("y", "f8"), ("flux", "f8"), ("npix", "f8")])
 
 
-def _as_catalog(x, y, flux):
+def _as_catalog(x, y, flux, npix):
     cat = np.empty(len(x), dtype=_CATALOG_DTYPE)
-    cat["x"], cat["y"], cat["flux"] = x, y, flux
+    cat["x"], cat["y"], cat["flux"], cat["npix"] = x, y, flux, npix
     return cat
 
 
@@ -29,7 +29,7 @@ def _detect_sep(image, thresh, minarea):
     bkg = _sep.Background(data)
     data_sub = data - bkg.back()
     objects = _sep.extract(data_sub, thresh, err=bkg.globalrms, minarea=minarea)
-    return _as_catalog(objects["x"], objects["y"], objects["flux"])
+    return _as_catalog(objects["x"], objects["y"], objects["flux"], objects["npix"])
 
 
 def _detect_photutils(image, thresh, minarea):
@@ -40,12 +40,13 @@ def _detect_photutils(image, thresh, minarea):
     _, median, std = sigma_clipped_stats(data, sigma=3.0)
     segm = detect_sources(data - median, thresh * std, npixels=minarea)
     if segm is None:
-        return _as_catalog([], [], [])
+        return _as_catalog([], [], [], [])
     cat = SourceCatalog(data - median, segm)
     return _as_catalog(
         np.asarray(cat.xcentroid),
         np.asarray(cat.ycentroid),
         np.asarray(cat.segment_flux),
+        np.asarray(cat.area.value, dtype=np.float64),
     )
 
 

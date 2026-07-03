@@ -47,7 +47,7 @@ def test_detect_sources_finds_bright_sources(synthetic_scene):
         image = np.asarray(hdul[0].data, dtype=np.float64)
     cat = detect_sources(image, thresh=3.0, minarea=5)
     assert len(cat) >= 6  # bright synthetic sources are hard to miss
-    assert set(cat.dtype.names) == {"x", "y", "flux"}
+    assert set(cat.dtype.names) == {"x", "y", "flux", "npix"}
 
 
 def test_cli_writes_structured_results(synthetic_scene, tmp_path, capsys):

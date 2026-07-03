@@ -30,9 +30,15 @@ from .detect import detect_sources, source_mask
 from .metrics import (
     completeness,
     completeness_vs_mag,
+    detection_rate,
+    flux_snr,
+    fourier_sharpness,
+    mae,
+    mse,
     photometric_accuracy,
     psnr,
     purity,
+    rmse,
     sky_sigma,
 )
 
@@ -134,7 +140,15 @@ def evaluate(args):
         "completeness": completeness(catalog, truth, args.radius),
         "purity": purity(catalog, truth, args.radius),
         "sky_sigma": sky_sigma(denoised, mask=source_mask(denoised, thresh=args.thresh)),
+        "sharpness_sf": fourier_sharpness(denoised),
     }
+    results["flux_snr"] = flux_snr(catalog, results["sky_sigma"])
+
+    if args.thresh_sweep:
+        thresholds = [float(t) for t in args.thresh_sweep.split(",")]
+        results["detection_rate"] = detection_rate(
+            denoised, thresholds, minarea=args.minarea, truth=truth, radius=args.radius
+        )
 
     if "flux" in truth:
         results["photometric_accuracy"] = photometric_accuracy(catalog, truth, radius=args.radius)
@@ -148,6 +162,14 @@ def evaluate(args):
         original = load_image(args.original)
         results["psnr"] = psnr(original, denoised)
         results["ssim"] = ssim_safe(original, denoised)
+        results["mse"] = mse(original, denoised)
+        results["rmse"] = rmse(original, denoised)
+        results["mae"] = mae(original, denoised)
+        original_sf = fourier_sharpness(original)
+        results["sharpness_sf_original"] = original_sf
+        results["sharpness_ratio"] = (
+            results["sharpness_sf"] / original_sf if original_sf > 0 else float("nan")
+        )
 
     return results
 
@@ -162,7 +184,20 @@ def print_summary(console, results):
     table = RichTable(title="astro-denoise-metrics results")
     table.add_column("Metric")
     table.add_column("Value", justify="right")
-    for key in ("n_detected", "n_truth", "completeness", "purity", "sky_sigma", "psnr", "ssim"):
+    for key in (
+        "n_detected",
+        "n_truth",
+        "completeness",
+        "purity",
+        "sky_sigma",
+        "sharpness_sf",
+        "flux_snr",
+        "psnr",
+        "ssim",
+        "mse",
+        "rmse",
+        "mae",
+    ):
         if key in results and results[key] is not None:
             value = results[key]
             table.add_row(key, f"{value:.4f}" if isinstance(value, float) else str(value))
@@ -208,6 +243,11 @@ def build_parser():
     )
     parser.add_argument(
         "--minarea", type=int, default=5, help="Minimum connected pixels per detection"
+    )
+    parser.add_argument(
+        "--thresh-sweep",
+        default=None,
+        help="Comma-separated thresholds for a detection-rate sweep (e.g. '1,1.5,2,3,5')",
     )
     return parser
 
