@@ -60,7 +60,10 @@ def dataset(tmp_path):
 
 def test_run_method_subprocess_protocol(fake_method, dataset, tmp_path):
     status = run_method_subprocess(fake_method, dataset / "p0_noisy.fits", tmp_path / "out.fits")
-    assert status == {"algorithm": "fake", "status": "ok"}
+    assert status["algorithm"] == "fake"
+    assert status["status"] == "ok"
+    # peak_rss_mb is attached when GNU time is available on the host
+    assert set(status) <= {"algorithm", "status", "peak_rss_mb"}
     assert (tmp_path / "out.fits").exists()
 
 

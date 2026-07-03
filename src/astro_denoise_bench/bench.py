@@ -122,6 +122,48 @@ def evaluate_patch(denoised, clean):
 # ---------------------------------------------------------------------------
 
 
+_GNU_TIME = "/usr/bin/time"
+
+
+def _run_json_subprocess(cmd, timeout, label):
+    """Run a protocol subprocess and parse its stdout JSON status line.
+
+    When GNU time is available the command is wrapped to record the
+    child's peak RSS, attached to the status as ``peak_rss_mb``.
+    """
+    import os
+    import tempfile
+
+    mem_path = None
+    if os.path.exists(_GNU_TIME):
+        fd, mem_path = tempfile.mkstemp(suffix=".rss")
+        os.close(fd)
+        cmd = [_GNU_TIME, "-f", "%M", "-o", mem_path, *cmd]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        peak_rss_mb = None
+        if mem_path is not None:
+            raw = Path(mem_path).read_text().strip().splitlines()
+            if raw and raw[-1].isdigit():
+                peak_rss_mb = round(int(raw[-1]) / 1024, 1)
+    finally:
+        if mem_path is not None:
+            Path(mem_path).unlink(missing_ok=True)
+
+    if proc.returncode != 0:
+        detail = proc.stdout.strip() or proc.stderr.strip()[-400:]
+        raise RuntimeError(f"{label} failed (rc={proc.returncode}): {detail}")
+    for line in reversed(proc.stdout.strip().splitlines()):
+        try:
+            status = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if peak_rss_mb is not None:
+            status["peak_rss_mb"] = peak_rss_mb
+        return status
+    raise RuntimeError(f"{label} produced no JSON status on stdout")
+
+
 def run_method_subprocess(algo, noisy, output, config=None, python=None, timeout=3600):
     """Invoke a method module via the standard CLI protocol.
 
@@ -132,16 +174,54 @@ def run_method_subprocess(algo, noisy, output, config=None, python=None, timeout
     cmd = [python or sys.executable, "-m", module, "--input", str(noisy), "--output", str(output)]
     if config:
         cmd += ["--config", str(config)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    if proc.returncode != 0:
-        detail = proc.stdout.strip() or proc.stderr.strip()[-400:]
-        raise RuntimeError(f"{module} failed (rc={proc.returncode}): {detail}")
-    for line in reversed(proc.stdout.strip().splitlines()):
-        try:
-            return json.loads(line)
-        except json.JSONDecodeError:
-            continue
-    raise RuntimeError(f"{module} produced no JSON status on stdout")
+    return _run_json_subprocess(cmd, timeout, module)
+
+
+def run_metrics_subprocess(
+    denoised,
+    truth,
+    output,
+    python=None,
+    band=None,
+    mag_limit=None,
+    thresh=1.5,
+    radius=2.0,
+    thresh_sweep=None,
+    timeout=3600,
+):
+    """Invoke the astro-denoise-metrics CLI on a denoised image.
+
+    ``truth`` may be a FITS table or a DC2 Parquet catalog (then
+    ``band`` selects the flux column). Returns the full results dict
+    read back from the metrics JSON output file, with ``peak_rss_mb``
+    attached when measurable.
+    """
+    cmd = [
+        python or sys.executable,
+        "-m",
+        "astro_denoise_metrics",
+        "--input",
+        str(denoised),
+        "--truth",
+        str(truth),
+        "--output",
+        str(output),
+        "--thresh",
+        str(thresh),
+        "--radius",
+        str(radius),
+    ]
+    if band:
+        cmd += ["--band", band]
+    if mag_limit is not None:
+        cmd += ["--mag-limit", str(mag_limit)]
+    if thresh_sweep:
+        cmd += ["--thresh-sweep", thresh_sweep]
+    status = _run_json_subprocess(cmd, timeout, "astro_denoise_metrics")
+    results = json.loads(Path(output).read_text())
+    if "peak_rss_mb" in status:
+        results["peak_rss_mb"] = status["peak_rss_mb"]
+    return results
 
 
 def run_benchmark(algo, data_dir, output_dir=None, config=None, python=None, progress=None):
@@ -211,3 +291,138 @@ def summarize(runs):
             if values:
                 summary[f"mean_{key}"] = round(statistics.fmean(values), 4)
     return summary
+
+
+# ---------------------------------------------------------------------------
+# curated-manifest benchmark (real DC2 regions + metrics engine)
+# ---------------------------------------------------------------------------
+
+CURATED_METRIC_KEYS = (
+    "completeness",
+    "purity",
+    "sky_sigma",
+    "sharpness_sf",
+    "flux_snr",
+)
+
+
+def _mean_of(records, getter):
+    values = [v for v in (getter(r) for r in records) if v is not None and np.isfinite(v)]
+    return round(statistics.fmean(values), 4) if values else None
+
+
+def summarize_curated(runs):
+    """Aggregate per-region results overall and per band."""
+
+    def block(records):
+        ok = [r for r in records if r.get("status") == "ok"]
+        out = {"n_ok": len(ok), "n_failed": len(records) - len(ok)}
+        out["mean_wall_time_s"] = _mean_of(ok, lambda r: r.get("wall_time_s"))
+        out["mean_peak_rss_mb"] = _mean_of(ok, lambda r: r.get("peak_rss_mb"))
+        for key in CURATED_METRIC_KEYS:
+            out[f"mean_{key}"] = _mean_of(ok, lambda r, k=key: r.get("metrics", {}).get(k))
+        return out
+
+    summary = block(runs)
+    summary["per_band"] = {
+        band: block([r for r in runs if r.get("band") == band])
+        for band in sorted({r.get("band") for r in runs if r.get("band")})
+    }
+    return summary
+
+
+def run_curated_benchmark(
+    manifest,
+    algo,
+    out_dir,
+    method_python=None,
+    metrics_python=None,
+    config=None,
+    bands=None,
+    mag_limit=26.0,
+    thresh=1.5,
+    previews=False,
+    progress=None,
+):
+    """Benchmark ``algo`` over a curated DC2 region block.
+
+    For every manifest region (optionally filtered by ``bands``):
+    denoise via the method's CLI, evaluate against the region's truth
+    catalog via the metrics CLI (projected by WCS, per band), and
+    optionally render a before/after/residual PNG preview. Returns the
+    consolidated report grouped overall and per band.
+    """
+    regions = [r for r in manifest["regions"] if not bands or r["band"] in bands]
+    if not regions:
+        raise FileNotFoundError("manifest has no regions matching the band filter")
+
+    out_dir = Path(out_dir)
+    denoised_dir = out_dir / f"denoised_{algo}"
+    metrics_dir = out_dir / f"metrics_{algo}"
+    denoised_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+
+    runs = []
+    for index, region in enumerate(regions, start=1):
+        if progress:
+            progress(index, len(regions), region["id"])
+        denoised_path = denoised_dir / f"{region['id']}.fits"
+        record = {
+            "region": region["id"],
+            "band": region["band"],
+            "tract": region["tract"],
+            "output": str(denoised_path),
+        }
+        start = time.perf_counter()
+        try:
+            status = run_method_subprocess(
+                algo, region["path"], denoised_path, config=config, python=method_python
+            )
+            record["wall_time_s"] = round(time.perf_counter() - start, 4)
+            record["status"] = status.get("status", "ok")
+            if "peak_rss_mb" in status:
+                record["peak_rss_mb"] = status["peak_rss_mb"]
+
+            if region.get("truth"):
+                results = run_metrics_subprocess(
+                    denoised_path,
+                    region["truth"],
+                    metrics_dir / f"{region['id']}.json",
+                    python=metrics_python,
+                    band=region["band"],
+                    mag_limit=mag_limit,
+                    thresh=thresh,
+                )
+                record["metrics"] = {
+                    key: results.get(key) for key in (*CURATED_METRIC_KEYS, "n_detected", "n_truth")
+                }
+                record["metrics_json"] = str(metrics_dir / f"{region['id']}.json")
+
+            if previews:
+                from .previews import render_preview
+
+                preview_dir = out_dir / f"previews_{algo}"
+                preview_dir.mkdir(parents=True, exist_ok=True)
+                record["preview"] = render_preview(
+                    region["path"],
+                    denoised_path,
+                    preview_dir / f"{region['id']}.png",
+                    title=f"{region['id']} — {algo}",
+                )
+        except Exception as exc:
+            record["wall_time_s"] = round(time.perf_counter() - start, 4)
+            record["status"] = "error"
+            record["error"] = str(exc)
+        runs.append(record)
+
+    return {
+        "module": "astro-denoise-bench",
+        "kind": "curated-benchmark",
+        "algorithm": algo,
+        "bands": sorted({r["band"] for r in regions}),
+        "mag_limit": mag_limit,
+        "thresh": thresh,
+        "n_regions": len(regions),
+        "runs": runs,
+        "summary": summarize_curated(runs),
+    }
