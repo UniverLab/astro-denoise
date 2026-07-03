@@ -49,7 +49,7 @@ python -m astro_denoise_bench --curate \
     --coadd-root data/coadd-t3828-t3829-small \
     --truth-root data/truth_match \
     --curated-out data/curated \
-    [--size 256] [--regions-per-image 3] [--bands z,r]
+    [--size 256] [--regions-per-image 3] [--bands z,r] [--seed 12345]
 
 # 2) Benchmark sobre el bloque curado con el motor de métricas real
 python -m astro_denoise_bench \
@@ -110,6 +110,9 @@ python -m astro_denoise_bench \
 - `--config` se reenvía tal cual al módulo del método.
 - `--previews` escribe un PNG antes/después/residual por región
   (zscale + asinh compartido entre paneles).
+- El muestreo de regiones es **pseudoaleatorio**: cada curación cubre zonas
+  de cielo distintas; la semilla usada queda registrada en el manifest, así
+  que un bloque publicado es exactamente regenerable con `--seed <valor>`.
 - El reporte del modo curado agrupa las métricas globalmente y por banda
   (`summary.per_band`), e incluye memoria pico RSS por subproceso cuando
   GNU time está disponible.
