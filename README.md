@@ -64,6 +64,13 @@ python -m astro_denoise_metrics \
   trade-off completitud/pureza.
 - Con `--original` se reportan además PSNR, SSIM, MSE, RMSE, MAE y el ratio de
   nitidez S_F (denoised/original).
+- `--explain`: imprime una tabla con **qué mide cada métrica, cómo
+  interpretarla y su referencia** en la literatura, y termina. No requiere
+  otros argumentos:
+
+```bash
+python -m astro_denoise_metrics --explain
+```
 
 - `--truth`: tabla binaria FITS con columnas `x`, `y`, `flux` (y opcionalmente
   `mag`); se reconocen alias estilo SExtractor (`X_IMAGE`, `xcentroid`, …).
