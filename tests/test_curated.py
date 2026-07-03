@@ -47,7 +47,27 @@ def coadd_tree(tmp_path):
         fits.PrimaryHDU(data=np.ones(shape, dtype=np.int32)).writeto(target / "2,2_nImage.fits")
     truth_root = tmp_path / "truth"
     truth_root.mkdir()
-    (truth_root / "truth_tract3828.parquet").write_bytes(b"placeholder")
+    # real parquet: sources covering the image sky area plus far-away ones
+    # that trimming must drop (image spans ~0.011 deg around crval)
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    n_inside = 50
+    ra_in = rng.uniform(56.645, 56.655, n_inside)
+    dec_in = rng.uniform(-36.455, -36.445, n_inside)
+    ra = np.concatenate([ra_in, [57.65, 55.65]])  # 2 far outside
+    dec = np.concatenate([dec_in, [-36.45, -36.45]])
+    table = pa.table(
+        {
+            "ra": pa.array(ra, type=pa.float64()),
+            "dec": pa.array(dec, type=pa.float64()),
+            "flux_z": pa.array(rng.uniform(10, 1e4, len(ra)), type=pa.float64()),
+            "flux_r": pa.array(rng.uniform(10, 1e4, len(ra)), type=pa.float64()),
+            "is_unique_truth_entry": pa.array([True] * len(ra), type=pa.bool_()),
+            "mag_r": pa.array(rng.uniform(18, 28, len(ra)), type=pa.float64()),
+        }
+    )
+    pq.write_table(table, truth_root / "truth_tract3828.parquet")
     return tmp_path / "coadd", truth_root
 
 
@@ -87,6 +107,31 @@ class TestCurate:
                 assert region["has_variance"]
                 assert hdul["VARIANCE"].data.shape == (64, 64)
             assert region["truth"].endswith("truth_tract3828.parquet")
+
+    def test_block_is_self_contained_and_trimmed(self, coadd_tree, tmp_path):
+        import pyarrow.parquet as pq
+
+        coadd_root, truth_root = coadd_tree
+        out = tmp_path / "curated"
+        curate(coadd_root, truth_root, out, size=64, regions_per_image=2)
+
+        raw = json.loads((out / "manifest.json").read_text())
+        for region in raw["regions"]:
+            # portable: relative paths inside the block, no machine-specific roots
+            assert region["truth"] == "truth/truth_tract3828.parquet"
+            assert not Path(region["path"]).is_absolute()
+
+        trimmed = pq.read_table(out / "truth" / "truth_tract3828.parquet")
+        source = pq.read_table(truth_root / "truth_tract3828.parquet")
+        assert trimmed.num_rows < source.num_rows  # far-away sources dropped
+        assert trimmed.num_rows > 0
+        names = set(trimmed.schema.names)
+        assert {"ra", "dec", "flux_z", "flux_r", "is_unique_truth_entry"} <= names
+        assert "mag_r" not in names  # non-essential columns stripped
+
+        # resolved truth must sit inside the block, ready for distribution
+        loaded = load_manifest(out / "manifest.json")
+        assert loaded["regions"][0]["truth"].startswith(str(out))
 
     def test_cutout_wcs_matches_parent(self, coadd_tree, tmp_path):
         coadd_root, truth_root = coadd_tree
@@ -256,3 +301,71 @@ class TestTuiHelpers:
         assert len(rows) == 2  # all + z
         assert rows[0][0] == "bm3d"
         assert rows[1][1] == "z"
+
+
+class TestHfDistribution:
+    def test_fetch_validates_manifest_presence(self, tmp_path, monkeypatch):
+        import sys
+        import types
+
+        def fake_snapshot_download(repo_id, repo_type, revision, token, local_dir):
+            Path(local_dir).mkdir(parents=True, exist_ok=True)
+            return local_dir
+
+        stub = types.SimpleNamespace(snapshot_download=fake_snapshot_download)
+        monkeypatch.setitem(sys.modules, "huggingface_hub", stub)
+        from astro_denoise_bench.hf import fetch_curated
+
+        with pytest.raises(FileNotFoundError, match="manifest.json"):
+            fetch_curated("user/astro-denoise-curated", tmp_path / "dl")
+
+    def test_fetch_returns_manifest_path(self, tmp_path, monkeypatch):
+        import sys
+        import types
+
+        def fake_snapshot_download(repo_id, repo_type, revision, token, local_dir):
+            Path(local_dir).mkdir(parents=True, exist_ok=True)
+            (Path(local_dir) / "manifest.json").write_text("{}")
+            return local_dir
+
+        stub = types.SimpleNamespace(snapshot_download=fake_snapshot_download)
+        monkeypatch.setitem(sys.modules, "huggingface_hub", stub)
+        from astro_denoise_bench.hf import fetch_curated
+
+        manifest = fetch_curated("user/astro-denoise-curated", tmp_path / "dl")
+        assert manifest.name == "manifest.json"
+        assert manifest.exists()
+
+    def test_push_requires_manifest(self, tmp_path):
+        from astro_denoise_bench.hf import push_curated
+
+        with pytest.raises(FileNotFoundError, match="curate first"):
+            push_curated("user/astro-denoise-curated", tmp_path)
+
+    def test_push_uploads_block_and_skips_run_outputs(self, tmp_path, monkeypatch):
+        import sys
+        import types
+
+        calls = {}
+
+        class FakeApi:
+            def __init__(self, token=None):
+                calls["token"] = token
+
+            def create_repo(self, repo_id, repo_type, private, exist_ok):
+                calls["create"] = (repo_id, repo_type, exist_ok)
+
+            def upload_folder(
+                self, folder_path, repo_id, repo_type, commit_message, ignore_patterns
+            ):
+                calls["upload"] = (folder_path, repo_id, ignore_patterns)
+
+        stub = types.SimpleNamespace(HfApi=FakeApi)
+        monkeypatch.setitem(sys.modules, "huggingface_hub", stub)
+        from astro_denoise_bench.hf import push_curated
+
+        (tmp_path / "manifest.json").write_text("{}")
+        url = push_curated("user/astro-denoise-curated", tmp_path)
+        assert url.endswith("user/astro-denoise-curated")
+        assert calls["create"][1] == "dataset"
+        assert "denoised_*" in calls["upload"][2]

@@ -117,6 +117,23 @@ def build_parser():
         "--list", action="store_true", help="List discovered astro-denoise method modules"
     )
     parser.add_argument("--tui", action="store_true", help="Launch the interactive dashboard")
+    parser.add_argument(
+        "--explain-metrics",
+        action="store_true",
+        help="Describe every metric (delegates to the metrics module; honors --metrics-python)",
+    )
+
+    hf_group = parser.add_argument_group("Hugging Face distribution")
+    hf_group.add_argument(
+        "--fetch-dataset",
+        metavar="REPO_ID",
+        help="Download the curated block from a HF dataset repo into --curated-out",
+    )
+    hf_group.add_argument(
+        "--push-dataset",
+        metavar="REPO_ID",
+        help="Upload the curated block in --curated-out to a HF dataset repo (owner only)",
+    )
 
     curate_group = parser.add_argument_group("dataset curation (--curate)")
     curate_group.add_argument(
@@ -168,6 +185,42 @@ def main(argv=None):
         from .tui import run_tui
 
         return run_tui(manifest_path=args.manifest)
+
+    if args.explain_metrics:
+        import subprocess
+
+        cmd = [args.metrics_python or sys.executable, "-m", "astro_denoise_metrics", "--explain"]
+        return subprocess.run(cmd).returncode
+
+    if args.fetch_dataset or args.push_dataset:
+        from .hf import fetch_curated, push_curated
+
+        out = args.curated_out or Path("data/curated")
+        try:
+            if args.fetch_dataset:
+                manifest_path = fetch_curated(args.fetch_dataset, out)
+                manifest = load_manifest(manifest_path)
+                console.print(
+                    f"[green]fetched[/green] {manifest['n_regions']} regions "
+                    f"({', '.join(manifest['bands'])}) -> {manifest_path}"
+                )
+                emit(
+                    {
+                        "status": "ok",
+                        "manifest": str(manifest_path),
+                        "n_regions": manifest["n_regions"],
+                        "bands": manifest["bands"],
+                    }
+                )
+            else:
+                url = push_curated(args.push_dataset, out)
+                console.print(f"[green]pushed[/green] {out} -> {url}")
+                emit({"status": "ok", "dataset": url})
+            return 0
+        except Exception as exc:
+            console.print(f"[red]error:[/red] {exc}")
+            emit({"status": "error", "error": str(exc)})
+            return 1
 
     if args.list:
         methods = discover_methods()
