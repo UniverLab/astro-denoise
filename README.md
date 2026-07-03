@@ -63,6 +63,10 @@ python -m astro_denoise_bench \
 # 3) Dashboard interactivo (métodos / dataset / comparación por banda)
 python -m astro_denoise_bench --tui --manifest data/curated/manifest.json
 
+# Explicación de cada métrica (delega en astro-denoise-metrics --explain)
+python -m astro_denoise_bench --explain-metrics \
+    --metrics-python ../astro-denoise-metrics/.venv/bin/python
+
 # Modo clásico: pares sintéticos *_noisy/*_clean
 python -m astro_denoise_bench \
     --algo bm3d \
@@ -82,19 +86,43 @@ python -m astro_denoise_bench \
   (`summary.per_band`), e incluye memoria pico RSS por subproceso cuando
   GNU time está disponible.
 
+## Distribución del bloque curado (Hugging Face)
+
+El bloque curado es **autocontenido y portable**: el truth catalog se recorta
+a la zona de cielo de las regiones (52 GB → cientos de KB) y se guarda dentro
+del bloque con rutas relativas en el manifest. El dueño del dataset lo publica
+una vez; cada usuario del benchmark lo descarga:
+
+```bash
+# Usuario del benchmark: descargar el bloque curado
+python -m astro_denoise_bench --fetch-dataset <org>/astro-denoise-curated \
+    --curated-out data/curated
+
+# Dueño del dataset: publicar el bloque (requiere HF_TOKEN con permiso write)
+python -m astro_denoise_bench --push-dataset <org>/astro-denoise-curated \
+    --curated-out data/curated
+```
+
+- `--push-dataset` crea el repo dataset si no existe y excluye salidas de runs
+  (`denoised_*`, `metrics_*`, `previews_*`, `report*.json`).
+- Los pesos de los métodos entrenados se distribuirán por el mismo canal como
+  repos de modelo.
+
 ## Layout del dataset
 
 ### Bloque curado DC2 (modo `--manifest`)
 
 ```
 data/curated/
-├── manifest.json          # contrato reproducible: regiones, bandas, truth
+├── manifest.json          # contrato reproducible: regiones, bandas, truth (rutas relativas)
 ├── regions/               # cutouts FITS (imagen con WCS + HDU VARIANCE)
 │   ├── t3828-p22-z-r0.fits
 │   └── ...
-├── denoised_<algo>/       # salidas por método
-├── metrics_<algo>/        # JSON de métricas por región
-└── previews_<algo>/       # PNG antes/después/residual
+├── truth/                 # truth catalogs recortados a la zona de las regiones
+│   └── truth_tract3828.parquet
+├── denoised_<algo>/       # salidas por método (no se distribuyen)
+├── metrics_<algo>/        # JSON de métricas por región (no se distribuyen)
+└── previews_<algo>/       # PNG antes/después/residual (no se distribuyen)
 ```
 
 ### Modo clásico (pares sintéticos, `--data-dir`)
