@@ -96,3 +96,22 @@ def test_cli_reports_error_on_missing_input(tmp_path, capsys):
     assert rc == 1
     status = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert status["status"] == "error"
+
+
+def test_cli_explain_lists_all_metrics(capsys):
+    from astro_denoise_metrics.__main__ import main
+    from astro_denoise_metrics.explain import METRIC_INFO
+
+    assert main(["--explain"]) == 0
+    out = capsys.readouterr().out
+    for key in METRIC_INFO:
+        assert key.split(" / ")[0] in out
+
+
+def test_cli_missing_args_without_explain_errors():
+    import pytest
+
+    from astro_denoise_metrics.__main__ import main
+
+    with pytest.raises(SystemExit):
+        main([])

@@ -213,10 +213,9 @@ def build_parser():
         prog="python -m astro_denoise_metrics",
         description="Scientific metrics for denoised astronomical images.",
     )
-    parser.add_argument("--input", required=True, type=Path, help="Denoised FITS image to evaluate")
+    parser.add_argument("--input", type=Path, help="Denoised FITS image to evaluate")
     parser.add_argument(
         "--truth",
-        required=True,
         type=Path,
         help="Truth catalog: FITS table (x, y, flux) or DC2 Parquet (needs --band)",
     )
@@ -231,7 +230,12 @@ def build_parser():
         default=None,
         help="Drop Parquet truth sources fainter than this AB magnitude",
     )
-    parser.add_argument("--output", required=True, type=Path, help="Path of the JSON results file")
+    parser.add_argument("--output", type=Path, help="Path of the JSON results file")
+    parser.add_argument(
+        "--explain",
+        action="store_true",
+        help="Describe every reported metric (what it measures, how to read it) and exit",
+    )
     parser.add_argument(
         "--original", type=Path, default=None, help="Noise-free reference image for PSNR/SSIM"
     )
@@ -252,9 +256,28 @@ def build_parser():
     return parser
 
 
+def print_explanations(console):
+    from .explain import explain_lines
+
+    table = RichTable(title="astro-denoise-metrics — qué mide cada métrica", show_lines=True)
+    table.add_column("Métrica", style="bold", no_wrap=True)
+    table.add_column("Qué mide", max_width=44)
+    table.add_column("Cómo interpretarla", max_width=44)
+    table.add_column("Referencia", max_width=28)
+    for row in explain_lines():
+        table.add_row(*row)
+    console.print(table)
+
+
 def main(argv=None):
     console = Console(stderr=True)
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.explain:
+        print_explanations(Console())
+        return 0
+    if not args.input or not args.truth or not args.output:
+        parser.error("--input, --truth and --output are required (or use --explain)")
     try:
         results = _nan_to_none(evaluate(args))
     except Exception as exc:  # surface a structured error for orchestrators
