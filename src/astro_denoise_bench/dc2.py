@@ -54,23 +54,19 @@ def discover_coadds(coadd_root, bands=None):
     return found
 
 
-def grid_positions(shape, size, n):
-    """Deterministic, spread-out cutout centers inside ``shape``.
+def random_positions(shape, size, n, rng):
+    """Pseudo-random, spread-out cutout centers inside ``shape``.
 
-    Centers are placed along the two diagonals at evenly spaced
-    fractions, keeping a half-cutout margin from the borders, so the
-    same call always yields the same heterogeneous sampling.
+    Uniform sampling with a half-cutout margin from the borders. The
+    sampling is driven by ``rng`` so a curated block is different on
+    every run unless the seed is fixed — the seed is recorded in the
+    manifest, which is what makes any given block reproducible.
     """
     height, width = shape
-    margin_y, margin_x = size / 2, size / 2
-    positions = []
-    for k in range(n):
-        frac = (k + 1) / (n + 1)
-        fy = frac if k % 2 == 0 else 1 - frac
-        x = margin_x + frac * (width - 2 * margin_x)
-        y = margin_y + fy * (height - 2 * margin_y)
-        positions.append((float(x), float(y)))
-    return positions
+    margin = size / 2
+    xs = rng.uniform(margin, width - margin, n)
+    ys = rng.uniform(margin, height - margin, n)
+    return [(float(x), float(y)) for x, y in zip(xs, ys, strict=True)]
 
 
 def _region_id(entry, index):
@@ -151,13 +147,20 @@ def curate(
     bands=None,
     size=256,
     regions_per_image=3,
+    seed=None,
 ):
     """Build the curated heterogeneous region block and its manifest.
 
-    Writes one FITS per region (image HDU with WCS + VARIANCE extension
-    when the coadd provides one) under ``<out_dir>/regions/`` and a
-    ``manifest.json`` describing every region. Returns the manifest.
+    Region positions are sampled pseudo-randomly: with ``seed=None`` a
+    fresh seed is drawn, so every curated block covers different sky
+    regions; the seed used is recorded in the manifest so any block can
+    be regenerated exactly. Writes one FITS per region (image HDU with
+    WCS + VARIANCE extension when the coadd provides one) under
+    ``<out_dir>/regions/`` and a ``manifest.json``. Returns the manifest.
     """
+    if seed is None:
+        seed = int(np.random.SeedSequence().entropy % (2**32))
+    rng = np.random.default_rng(seed)
     out_dir = Path(out_dir)
     regions_dir = out_dir / "regions"
     regions_dir.mkdir(parents=True, exist_ok=True)
@@ -172,7 +175,7 @@ def curate(
     for entry in coadds:
         with fits.open(entry["path"]) as hdul:
             shape = hdul[IMAGE_HDU].data.shape
-        for index, center in enumerate(grid_positions(shape, size, regions_per_image)):
+        for index, center in enumerate(random_positions(shape, size, regions_per_image, rng)):
             region_id = _region_id(entry, index)
             image, variance, header, bbox = cut_region(entry["path"], center, size)
             hdus = [fits.PrimaryHDU(data=image, header=header)]
@@ -221,6 +224,7 @@ def curate(
         "truth_root": str(truth_root),
         "size": size,
         "regions_per_image": regions_per_image,
+        "seed": seed,
         "bands": sorted({r["band"] for r in regions}),
         "tracts": sorted({r["tract"] for r in regions}),
         "n_regions": len(regions),

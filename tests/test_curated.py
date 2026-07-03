@@ -11,8 +11,15 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 from astro_denoise_bench.bench import run_curated_benchmark, summarize_curated
-from astro_denoise_bench.dc2 import curate, discover_coadds, grid_positions, load_manifest
-from astro_denoise_bench.tui import comparison_rows, dataset_rows, method_rows
+from astro_denoise_bench.dc2 import curate, discover_coadds, load_manifest, random_positions
+from astro_denoise_bench.tui import (
+    comparison_rows,
+    dataset_rows,
+    dataset_summary,
+    method_rows,
+    report_for_algo,
+    report_region_rows,
+)
 
 
 def make_wcs(shape):
@@ -83,13 +90,29 @@ class TestDiscoverAndGrid:
         coadd_root, _ = coadd_tree
         assert len(discover_coadds(coadd_root, bands=["z"])) == 1
 
-    def test_grid_positions_deterministic_and_inside(self):
-        a = grid_positions((200, 200), 64, 3)
-        b = grid_positions((200, 200), 64, 3)
-        assert a == b
+    def test_random_positions_seeded_and_inside(self):
+        a = random_positions((200, 200), 64, 5, np.random.default_rng(42))
+        b = random_positions((200, 200), 64, 5, np.random.default_rng(42))
+        c = random_positions((200, 200), 64, 5, np.random.default_rng(43))
+        assert a == b  # same seed -> same block
+        assert a != c  # different seed -> different sky regions
         for x, y in a:
             assert 32 <= x <= 168
             assert 32 <= y <= 168
+
+    def test_curate_records_seed_and_is_reproducible(self, coadd_tree, tmp_path):
+        coadd_root, truth_root = coadd_tree
+        m1 = curate(coadd_root, truth_root, tmp_path / "c1", size=64, seed=7)
+        m2 = curate(coadd_root, truth_root, tmp_path / "c2", size=64, seed=7)
+        m3 = curate(coadd_root, truth_root, tmp_path / "c3", size=64)  # fresh seed
+
+        assert m1["seed"] == 7
+        centers1 = [(r["center_x"], r["center_y"]) for r in m1["regions"]]
+        centers2 = [(r["center_x"], r["center_y"]) for r in m2["regions"]]
+        centers3 = [(r["center_x"], r["center_y"]) for r in m3["regions"]]
+        assert centers1 == centers2  # same seed -> identical block
+        assert centers1 != centers3  # fresh seed -> different block
+        assert isinstance(m3["seed"], int)
 
 
 class TestCurate:
@@ -144,12 +167,19 @@ class TestCurate:
             parent_wcs = WCS(hdul[1].header)
         with fits.open(region["path"]) as hdul:
             cut_wcs = WCS(hdul[0].header)
-        # the cutout center pixel must map to the same sky position
-        world_cut = cut_wcs.pixel_to_world_values(31.5, 31.5)
-        world_parent = parent_wcs.pixel_to_world_values(
-            region["center_x"] - 0.5, region["center_y"] - 0.5
-        )
-        assert float(world_cut[0]) == pytest.approx(float(world_parent[0]), abs=1e-6)
+
+        # grid consistency: cutout pixel (0,0) lands on an integer parent
+        # pixel, and offsets propagate 1:1 (Cutout2D snaps to the grid)
+        ra0, dec0 = cut_wcs.pixel_to_world_values(0.0, 0.0)
+        px0, py0 = parent_wcs.world_to_pixel_values(ra0, dec0)
+        assert float(px0) == pytest.approx(round(float(px0)), abs=1e-6)
+        ra1, dec1 = cut_wcs.pixel_to_world_values(10.0, 20.0)
+        px1, py1 = parent_wcs.world_to_pixel_values(ra1, dec1)
+        assert float(px1 - px0) == pytest.approx(10.0, abs=1e-6)
+        assert float(py1 - py0) == pytest.approx(20.0, abs=1e-6)
+        # and the cutout window sits around the requested center
+        assert abs(float(px0) + 32 - region["center_x"]) <= 1.0
+        assert abs(float(py0) + 32 - region["center_y"]) <= 1.0
         assert manifest["n_regions"] == 2
 
 
@@ -276,7 +306,7 @@ class TestTuiHelpers:
         manifest = load_manifest(out / "manifest.json")
         rows = dataset_rows(manifest)
         assert len(rows) == 2
-        assert rows[0][4] == "yes"  # truth available
+        assert rows[0][5] == "yes"  # truth available
 
     def test_comparison_rows_reads_curated_reports(self, tmp_path):
         report = {
@@ -369,3 +399,52 @@ class TestHfDistribution:
         assert url.endswith("user/astro-denoise-curated")
         assert calls["create"][1] == "dataset"
         assert "denoised_*" in calls["upload"][2]
+
+
+class TestTuiDrilldown:
+    def make_report(self, tmp_path, algo="bm3d"):
+        report = {
+            "kind": "curated-benchmark",
+            "algorithm": algo,
+            "summary": {"n_ok": 1, "per_band": {}},
+            "runs": [
+                {
+                    "region": "t3828-p22-z-r0",
+                    "band": "z",
+                    "status": "ok",
+                    "wall_time_s": 1.2,
+                    "peak_rss_mb": 150.0,
+                    "metrics": {"completeness": 0.5, "purity": 0.6},
+                }
+            ],
+        }
+        path = tmp_path / f"report_{algo}.json"
+        path.write_text(json.dumps(report))
+        return path
+
+    def test_report_for_algo_finds_matching_report(self, tmp_path):
+        p1 = self.make_report(tmp_path, "bm3d")
+        p2 = self.make_report(tmp_path, "unet")
+        assert report_for_algo([p1, p2], "unet") == p2
+        assert report_for_algo([p1, p2], "missing") is None
+
+    def test_report_region_rows(self, tmp_path):
+        path = self.make_report(tmp_path)
+        rows = report_region_rows(path)
+        assert len(rows) == 1
+        region, band, status, completeness, *_rest = rows[0]
+        assert (region, band, status) == ("t3828-p22-z-r0", "z", "ok")
+        assert completeness == "0.5"
+
+    def test_dataset_summary_includes_seed(self):
+        manifest = {
+            "n_regions": 4,
+            "bands": ["r", "z"],
+            "tracts": [3828],
+            "size": 64,
+            "seed": 12345,
+            "regions": [{}] * 4,
+        }
+        line = dataset_summary(manifest)
+        assert "seed: 12345" in line
+        assert "4 regions" in line

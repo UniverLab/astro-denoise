@@ -158,6 +158,12 @@ def build_parser():
     curate_group.add_argument(
         "--regions-per-image", type=int, default=3, help="Cutouts sampled per coadd image"
     )
+    curate_group.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Sampling seed; omit for a fresh one (recorded in the manifest)",
+    )
     return parser
 
 
@@ -172,10 +178,12 @@ def run_curate_mode(console, args, parser):
         bands=bands,
         size=args.size,
         regions_per_image=args.regions_per_image,
+        seed=args.seed,
     )
     console.print(
         f"[green]curated[/green] {manifest['n_regions']} regions "
-        f"({', '.join(manifest['bands'])}) -> {args.curated_out}/manifest.json"
+        f"({', '.join(manifest['bands'])}) seed={manifest['seed']} "
+        f"-> {args.curated_out}/manifest.json"
     )
     emit(
         {
@@ -183,6 +191,7 @@ def run_curate_mode(console, args, parser):
             "manifest": str(Path(args.curated_out) / "manifest.json"),
             "n_regions": manifest["n_regions"],
             "bands": manifest["bands"],
+            "seed": manifest["seed"],
         }
     )
     return 0
