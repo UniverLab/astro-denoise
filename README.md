@@ -31,7 +31,11 @@ opcionalmente `flux` / `mag`.
 | `psnr(original, denoised)` | Peak signal-to-noise ratio (dB) |
 | `ssim(original, denoised)` | Índice de similitud estructural |
 | `sky_sigma(image, mask=None)` | Ruido residual de fondo (std sigma-clipped) |
-| `detect_sources(image, thresh=1.5, minarea=5)` | Detección con SEP (fallback photutils), retorna `x, y, flux` |
+| `mse(original, denoised)` / `rmse(...)` / `mae(...)` | Métricas clásicas pixel-wise |
+| `fourier_sharpness(image, freq_cutoff=0.5)` | Nitidez espectral S_F: fracción de potencia Fourier en alta frecuencia (AstroClearNet) |
+| `flux_snr(catalog, sigma)` | SNR de apertura mediano de las detecciones (`flux / (σ·√npix)`) |
+| `detection_rate(image, thresholds, truth=None)` | Barrido de umbrales: n_detected (+ completitud/pureza con truth) |
+| `detect_sources(image, thresh=1.5, minarea=5)` | Detección con SEP (fallback photutils), retorna `x, y, flux, npix` |
 | `load_dc2_truth(path, band)` | Lee `ra`/`dec`/`flux_<band>` de un Parquet DC2 (filtra duplicados) |
 | `project_truth(truth, wcs, shape, mag_limit=None)` | Proyecta el truth al espacio de píxeles vía WCS |
 
@@ -51,8 +55,15 @@ python -m astro_denoise_metrics \
     --truth truth.fits \
     --output results.json \
     [--original clean.fits] \
-    [--radius 2.0] [--thresh 1.5] [--minarea 5]
+    [--radius 2.0] [--thresh 1.5] [--minarea 5] \
+    [--thresh-sweep "1,1.5,2,3,5"]
 ```
+
+- `--thresh-sweep`: barrido de umbrales de detección; agrega al JSON la curva
+  `detection_rate` (n_detected + completitud/pureza por umbral), el insumo del
+  trade-off completitud/pureza.
+- Con `--original` se reportan además PSNR, SSIM, MSE, RMSE, MAE y el ratio de
+  nitidez S_F (denoised/original).
 
 - `--truth`: tabla binaria FITS con columnas `x`, `y`, `flux` (y opcionalmente
   `mag`); se reconocen alias estilo SExtractor (`X_IMAGE`, `xcentroid`, …).
