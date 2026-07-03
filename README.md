@@ -11,13 +11,22 @@ computacionales desde fuera del proceso Python; el protocolo CLI es el mismo.)
 ## Responsabilidades
 
 - **Descubrimiento de módulos** — detecta algoritmos instalados vía el grupo
-  de entry points `astro_denoise.methods` (paquetes `astro-denoise-*`).
+  de entry points `astro_denoise.methods` (paquetes `astro-denoise-*`) y repos
+  hermanos en disco (TUI).
+- **Curación de dataset** — construye el bloque curado heterogéneo DC2:
+  cutouts WCS-correctos + plano de varianza, muestreados de cada
+  tract × patch × banda, descritos por un `manifest.json` reproducible.
 - **Ejecución** — lanza cada algoritmo como proceso aislado con el protocolo
-  CLI estándar, de modo que cada módulo conserva su propio venv.
-- **Evaluación** — invoca `astro_denoise_metrics` (PSNR/SSIM/σ_sky) cuando
-  está disponible; incluye fallback numpy para PSNR/σ_sky.
-- **Reporte** — consolida tiempos y métricas por patch en un reporte JSON
-  comparativo con resumen agregado (throughput, medias).
+  CLI estándar (cada módulo conserva su propio venv) y mide tiempo de pared
+  y memoria pico RSS (GNU time).
+- **Evaluación** — en modo curado invoca el CLI de `astro-denoise-metrics`
+  (su propio venv) contra el truth catalog Parquet real, por región y banda;
+  en modo clásico usa PSNR/SSIM/σ_sky con fallback numpy.
+- **Reporte** — consolida métricas por región en un reporte JSON con resumen
+  global y **por banda**; opcionalmente renderiza previews PNG
+  antes/después/residual por región.
+- **TUI** — dashboard interactivo (`--tui`) para ver métodos acoplados,
+  el dataset curado y la comparación algoritmo × banda.
 
 ## Instalación
 
@@ -35,7 +44,26 @@ registrando el comando `astro-denoise-bench` y las dependencias de desarrollo
 # Listar módulos de métodos descubiertos (entry points instalados)
 python -m astro_denoise_bench --list
 
-# Ejecutar un benchmark
+# 1) Curar el bloque heterogéneo DC2 (regiones × bandas + manifest)
+python -m astro_denoise_bench --curate \
+    --coadd-root data/coadd-t3828-t3829-small \
+    --truth-root data/truth_match \
+    --curated-out data/curated \
+    [--size 256] [--regions-per-image 3] [--bands z,r]
+
+# 2) Benchmark sobre el bloque curado con el motor de métricas real
+python -m astro_denoise_bench \
+    --algo bm3d \
+    --manifest data/curated/manifest.json \
+    --python ../astro-denoise-bm3d/.venv/bin/python \
+    --metrics-python ../astro-denoise-metrics/.venv/bin/python \
+    [--bands z,r] [--mag-limit 26] [--previews] \
+    --output data/curated/report_bm3d.json
+
+# 3) Dashboard interactivo (métodos / dataset / comparación por banda)
+python -m astro_denoise_bench --tui --manifest data/curated/manifest.json
+
+# Modo clásico: pares sintéticos *_noisy/*_clean
 python -m astro_denoise_bench \
     --algo bm3d \
     --data-dir /path/to/data \
@@ -44,12 +72,32 @@ python -m astro_denoise_bench \
     [--python ../astro-denoise-bm3d/.venv/bin/python]
 ```
 
-- `--python` apunta al intérprete del venv propio del módulo de método; por
-  defecto usa el intérprete actual. Esto permite que cada módulo mantenga sus
-  dependencias aisladas.
+- `--python` / `--metrics-python` apuntan al intérprete del venv propio de
+  cada módulo; por defecto usan el intérprete actual. Así cada módulo mantiene
+  sus dependencias aisladas.
 - `--config` se reenvía tal cual al módulo del método.
+- `--previews` escribe un PNG antes/después/residual por región
+  (zscale + asinh compartido entre paneles).
+- El reporte del modo curado agrupa las métricas globalmente y por banda
+  (`summary.per_band`), e incluye memoria pico RSS por subproceso cuando
+  GNU time está disponible.
 
 ## Layout del dataset
+
+### Bloque curado DC2 (modo `--manifest`)
+
+```
+data/curated/
+├── manifest.json          # contrato reproducible: regiones, bandas, truth
+├── regions/               # cutouts FITS (imagen con WCS + HDU VARIANCE)
+│   ├── t3828-p22-z-r0.fits
+│   └── ...
+├── denoised_<algo>/       # salidas por método
+├── metrics_<algo>/        # JSON de métricas por región
+└── previews_<algo>/       # PNG antes/después/residual
+```
+
+### Modo clásico (pares sintéticos, `--data-dir`)
 
 ```
 data/
