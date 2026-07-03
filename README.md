@@ -57,8 +57,12 @@ python -m astro_denoise_bench \
     --manifest data/curated/manifest.json \
     --python ../astro-denoise-bm3d/.venv/bin/python \
     --metrics-python ../astro-denoise-metrics/.venv/bin/python \
-    [--bands z,r] [--mag-limit 26] [--previews] \
+    [--bands z,r] [--tracts 3829] [--mag-limit 26] [--previews] \
     --output data/curated/report_bm3d.json
+
+# `--tracts` restringe la evaluación a esos tracts: para métodos entrenados
+# (p. ej. unet) evalúe SOLO en tracts excluidos de su entrenamiento, así el
+# benchmark no puntúa regiones que la red ya vio.
 
 # 3) Dashboard interactivo (métodos / dataset / comparación por banda)
 python -m astro_denoise_bench --tui --manifest data/curated/manifest.json

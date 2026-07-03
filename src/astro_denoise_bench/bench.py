@@ -339,6 +339,7 @@ def run_curated_benchmark(
     metrics_python=None,
     config=None,
     bands=None,
+    tracts=None,
     mag_limit=26.0,
     thresh=1.5,
     previews=False,
@@ -346,15 +347,22 @@ def run_curated_benchmark(
 ):
     """Benchmark ``algo`` over a curated DC2 region block.
 
-    For every manifest region (optionally filtered by ``bands``):
-    denoise via the method's CLI, evaluate against the region's truth
-    catalog via the metrics CLI (projected by WCS, per band), and
-    optionally render a before/after/residual PNG preview. Returns the
-    consolidated report grouped overall and per band.
+    For every manifest region (optionally filtered by ``bands`` and/or
+    ``tracts``): denoise via the method's CLI, evaluate against the
+    region's truth catalog via the metrics CLI (projected by WCS, per
+    band), and optionally render a before/after/residual PNG preview.
+    Returns the consolidated report grouped overall and per band.
+
+    ``tracts`` is how a learned method is scored without data leakage:
+    evaluate only on tracts held out from its training split.
     """
-    regions = [r for r in manifest["regions"] if not bands or r["band"] in bands]
+    regions = [
+        r
+        for r in manifest["regions"]
+        if (not bands or r["band"] in bands) and (not tracts or r.get("tract") in tracts)
+    ]
     if not regions:
-        raise FileNotFoundError("manifest has no regions matching the band filter")
+        raise FileNotFoundError("manifest has no regions matching the band/tract filter")
 
     out_dir = Path(out_dir)
     denoised_dir = out_dir / f"denoised_{algo}"
@@ -420,6 +428,7 @@ def run_curated_benchmark(
         "kind": "curated-benchmark",
         "algorithm": algo,
         "bands": sorted({r["band"] for r in regions}),
+        "tracts": sorted({r["tract"] for r in regions}),
         "mag_limit": mag_limit,
         "thresh": thresh,
         "n_regions": len(regions),

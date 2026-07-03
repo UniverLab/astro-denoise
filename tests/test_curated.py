@@ -276,6 +276,33 @@ class TestCuratedBenchmark:
         assert report["n_regions"] == 1
         assert report["bands"] == ["z"]
 
+    def test_tract_filter_limits_regions(self, coadd_tree, tmp_path, fake_modules):
+        coadd_root, truth_root = coadd_tree
+        out = tmp_path / "curated"
+        curate(coadd_root, truth_root, out, size=64, regions_per_image=1)
+        manifest = load_manifest(out / "manifest.json")
+
+        report = run_curated_benchmark(
+            manifest,
+            "fake",
+            out_dir=out,
+            method_python=sys.executable,
+            metrics_python=sys.executable,
+            tracts=[3828],
+        )
+        assert report["n_regions"] == 2
+        assert report["tracts"] == [3828]
+
+        with pytest.raises(FileNotFoundError, match="band/tract"):
+            run_curated_benchmark(
+                manifest,
+                "fake",
+                out_dir=out,
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                tracts=[9999],
+            )
+
     def test_summarize_curated_handles_errors(self):
         runs = [
             {"status": "ok", "band": "z", "wall_time_s": 1.0, "metrics": {"completeness": 0.5}},

@@ -105,6 +105,12 @@ def build_parser():
         "--bands", default=None, help="Comma-separated band filter for manifest mode (e.g. 'z,r')"
     )
     parser.add_argument(
+        "--tracts",
+        default=None,
+        help="Comma-separated tract filter for manifest mode (e.g. '3829'); "
+        "use it to evaluate only on tracts held out from a method's training",
+    )
+    parser.add_argument(
         "--mag-limit", type=float, default=26.0, help="Truth AB magnitude cut (manifest mode)"
     )
     parser.add_argument(
@@ -297,6 +303,7 @@ def main(argv=None):
                 metrics_python=args.metrics_python,
                 config=args.config,
                 bands=args.bands.split(",") if args.bands else None,
+                tracts=[int(t) for t in args.tracts.split(",")] if args.tracts else None,
                 mag_limit=args.mag_limit,
                 thresh=args.thresh,
                 previews=args.previews,
