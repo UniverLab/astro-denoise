@@ -123,6 +123,18 @@ def build_parser():
         help="Describe every metric (delegates to the metrics module; honors --metrics-python)",
     )
 
+    parser.add_argument(
+        "--new-method",
+        metavar="NAME",
+        help="Scaffold a ready-to-run astro-denoise-<NAME> method module (zero friction)",
+    )
+    parser.add_argument(
+        "--methods-dir",
+        type=Path,
+        default=None,
+        help="Where to create the scaffolded method (default: current directory)",
+    )
+
     hf_group = parser.add_argument_group("Hugging Face distribution")
     hf_group.add_argument(
         "--fetch-dataset",
@@ -185,6 +197,25 @@ def main(argv=None):
         from .tui import run_tui
 
         return run_tui(manifest_path=args.manifest)
+
+    if args.new_method:
+        from .scaffold import scaffold_method
+
+        try:
+            repo_dir = scaffold_method(args.new_method, out_dir=args.methods_dir)
+        except (ValueError, FileExistsError) as exc:
+            console.print(f"[red]error:[/red] {exc}")
+            emit({"status": "error", "error": str(exc)})
+            return 1
+        console.print(
+            f"[green]scaffolded[/green] {repo_dir}\n"
+            f"next steps:\n"
+            f"  cd {repo_dir}\n"
+            f"  uv sync --all-extras && uv run pytest   # ya pasa\n"
+            f"  # implementa denoise() en src/astro_denoise_{args.new_method}/denoiser.py"
+        )
+        emit({"status": "ok", "scaffold": str(repo_dir), "algorithm": args.new_method})
+        return 0
 
     if args.explain_metrics:
         import subprocess

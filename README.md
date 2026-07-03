@@ -67,7 +67,35 @@ python -m astro_denoise_bench --tui --manifest data/curated/manifest.json
 python -m astro_denoise_bench --explain-metrics \
     --metrics-python ../astro-denoise-metrics/.venv/bin/python
 
-# Modo clásico: pares sintéticos *_noisy/*_clean
+# Crear un nuevo método con cero fricción (para otros investigadores)
+python -m astro_denoise_bench --new-method wavelet [--methods-dir /ruta]
+```
+
+## Añadir un método nuevo (cero fricción)
+
+`--new-method <nombre>` genera un repo `astro-denoise-<nombre>/` completo y
+funcional: contrato `DenoiseMethod`, CLI con el protocolo JSON del bench,
+entry point `astro_denoise.methods`, tests que **ya pasan**, y las mismas
+convenciones del boilerplate ghscaff (layout `src/`, uv, CI centralizada,
+MIT). El flujo del investigador:
+
+```bash
+python -m astro_denoise_bench --new-method wavelet
+cd astro-denoise-wavelet
+uv sync --all-extras && uv run pytest        # verde desde el minuto cero
+# implementar denoise() en src/astro_denoise_wavelet/denoiser.py
+python -m astro_denoise_bench --algo wavelet --manifest data/curated/manifest.json \
+    --python .venv/bin/python --metrics-python <metrics>/.venv/bin/python
+```
+
+El esqueleto sin modificar es un pass-through: corre el benchmark tal cual y
+sirve como baseline "sin denoising" en las comparaciones. El mismo template
+puede publicarse como plantilla de ghscaff-boilerplate para el flujo
+`ghscaff new` con repo GitHub.
+
+### Modo clásico (pares sintéticos)
+
+```bash
 python -m astro_denoise_bench \
     --algo bm3d \
     --data-dir /path/to/data \
