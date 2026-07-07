@@ -1,8 +1,8 @@
 """astro-denoise-metrics: scientific evaluation metrics for astronomical image denoising."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
-from .detect import detect_sources
+from .detect import background_rms, detect_sources
 from .metrics import (
     completeness,
     completeness_vs_mag,
@@ -35,6 +35,7 @@ __all__ = [
     "mae",
     "sky_sigma",
     "detect_sources",
+    "background_rms",
     "load_dc2_truth",
     "project_truth",
     "__version__",

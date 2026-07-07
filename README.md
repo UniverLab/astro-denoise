@@ -34,8 +34,9 @@ opcionalmente `flux` / `mag`.
 | `mse(original, denoised)` / `rmse(...)` / `mae(...)` | Métricas clásicas pixel-wise |
 | `fourier_sharpness(image, freq_cutoff=0.5)` | Nitidez espectral S_F: fracción de potencia Fourier en alta frecuencia (AstroClearNet) |
 | `flux_snr(catalog, sigma)` | SNR de apertura mediano de las detecciones (`flux / (σ·√npix)`) |
-| `detection_rate(image, thresholds, truth=None)` | Barrido de umbrales: n_detected (+ completitud/pureza con truth) |
-| `detect_sources(image, thresh=1.5, minarea=5)` | Detección con SEP (fallback photutils), retorna `x, y, flux, npix` |
+| `detection_rate(image, thresholds, truth=None, err=None)` | Barrido de umbrales: n_detected (+ completitud/pureza con truth) |
+| `detect_sources(image, thresh=1.5, minarea=5, err=None)` | Detección con SEP (fallback photutils), retorna `x, y, flux, npix` |
+| `background_rms(image)` | RMS global del fondo (SEP, fallback sigma-clipped); úselo sobre el input para fijar `err` |
 | `load_dc2_truth(path, band)` | Lee `ra`/`dec`/`flux_<band>` de un Parquet DC2 (filtra duplicados) |
 | `project_truth(truth, wcs, shape, mag_limit=None)` | Proyecta el truth al espacio de píxeles vía WCS |
 
@@ -56,12 +57,23 @@ python -m astro_denoise_metrics \
     --output results.json \
     [--original clean.fits] \
     [--radius 2.0] [--thresh 1.5] [--minarea 5] \
+    [--thresh-image noisy.fits] \
     [--thresh-sweep "1,1.5,2,3,5"]
 ```
 
+- `--thresh-image`: imagen FITS (típicamente el **input ruidoso**) sobre la que
+  se mide el RMS de fondo que escala `--thresh`. Sin ella, el umbral es
+  relativo al RMS de la imagen ya denoiseada, lo que **no es comparable entre
+  métodos**: un método que aplasta el fondo baja su propio σ y "detecta más
+  profundo" gratis (infla n_detected y hunde la pureza). Con `--thresh-image`
+  todos los métodos se umbralizan a la misma profundidad absoluta de flujo;
+  el σ usado queda registrado en el JSON (`parameters.thresh_rms`). Esta es la
+  decisión metodológica adoptada para la deuda D3 del proyecto: umbral =
+  `--thresh × RMS(input)`, en unidades absolutas de la imagen.
 - `--thresh-sweep`: barrido de umbrales de detección; agrega al JSON la curva
   `detection_rate` (n_detected + completitud/pureza por umbral), el insumo del
-  trade-off completitud/pureza.
+  trade-off completitud/pureza. Respeta `--thresh-image`, de modo que el
+  barrido también es comparable entre métodos.
 - Con `--original` se reportan además PSNR, SSIM, MSE, RMSE, MAE y el ratio de
   nitidez S_F (denoised/original).
 - `--explain`: imprime una tabla con **qué mide cada métrica, cómo

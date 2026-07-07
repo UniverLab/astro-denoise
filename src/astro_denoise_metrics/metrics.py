@@ -292,13 +292,15 @@ def flux_snr(catalog, sigma):
     return float(np.median(snr))
 
 
-def detection_rate(image, thresholds, minarea=5, truth=None, radius=2.0):
+def detection_rate(image, thresholds, minarea=5, truth=None, radius=2.0, err=None):
     """Source detection rate as a function of the detection threshold.
 
     BGRem-style diagnostic: runs the detector at each threshold (in
     background-RMS units) and reports the number of detections; when a
     ``truth`` catalog is given it also reports completeness and purity
-    per threshold.
+    per threshold. ``err`` fixes the RMS that scales the thresholds
+    (e.g. measured on the noisy input) so sweeps are comparable across
+    denoising methods.
     """
     from .detect import detect_sources
 
@@ -308,7 +310,7 @@ def detection_rate(image, thresholds, minarea=5, truth=None, radius=2.0):
         result["completeness"] = []
         result["purity"] = []
     for thresh in thresholds:
-        catalog = detect_sources(image, thresh=thresh, minarea=minarea)
+        catalog = detect_sources(image, thresh=thresh, minarea=minarea, err=err)
         result["n_detected"].append(int(len(catalog)))
         if truth is not None:
             result["completeness"].append(completeness(catalog, truth, radius))

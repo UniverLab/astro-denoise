@@ -26,7 +26,7 @@ from rich.console import Console
 from rich.table import Table as RichTable
 
 from . import __version__
-from .detect import detect_sources, source_mask
+from .detect import background_rms, detect_sources, source_mask
 from .metrics import (
     completeness,
     completeness_vs_mag,
@@ -121,7 +121,8 @@ def resolve_truth(args, denoised, header):
 def evaluate(args):
     denoised, header = load_image_and_header(args.input)
     truth = resolve_truth(args, denoised, header)
-    catalog = detect_sources(denoised, thresh=args.thresh, minarea=args.minarea)
+    thresh_rms = background_rms(load_image(args.thresh_image)) if args.thresh_image else None
+    catalog = detect_sources(denoised, thresh=args.thresh, minarea=args.minarea, err=thresh_rms)
 
     results = {
         "module": "astro-denoise-metrics",
@@ -134,12 +135,16 @@ def evaluate(args):
             "minarea": args.minarea,
             "band": args.band,
             "mag_limit": args.mag_limit,
+            "thresh_image": str(args.thresh_image) if args.thresh_image else None,
+            "thresh_rms": thresh_rms,
         },
         "n_detected": int(len(catalog)),
         "n_truth": int(len(truth["x"])),
         "completeness": completeness(catalog, truth, args.radius),
         "purity": purity(catalog, truth, args.radius),
-        "sky_sigma": sky_sigma(denoised, mask=source_mask(denoised, thresh=args.thresh)),
+        "sky_sigma": sky_sigma(
+            denoised, mask=source_mask(denoised, thresh=args.thresh, err=thresh_rms)
+        ),
         "sharpness_sf": fourier_sharpness(denoised),
     }
     results["flux_snr"] = flux_snr(catalog, results["sky_sigma"])
@@ -147,7 +152,12 @@ def evaluate(args):
     if args.thresh_sweep:
         thresholds = [float(t) for t in args.thresh_sweep.split(",")]
         results["detection_rate"] = detection_rate(
-            denoised, thresholds, minarea=args.minarea, truth=truth, radius=args.radius
+            denoised,
+            thresholds,
+            minarea=args.minarea,
+            truth=truth,
+            radius=args.radius,
+            err=thresh_rms,
         )
 
     if "flux" in truth:
@@ -244,6 +254,14 @@ def build_parser():
     )
     parser.add_argument(
         "--thresh", type=float, default=1.5, help="Detection threshold in background-RMS units"
+    )
+    parser.add_argument(
+        "--thresh-image",
+        type=Path,
+        default=None,
+        help="Measure the background RMS that scales --thresh on this FITS image "
+        "(e.g. the noisy input) instead of on --input, so the detection depth "
+        "is comparable across denoising methods",
     )
     parser.add_argument(
         "--minarea", type=int, default=5, help="Minimum connected pixels per detection"

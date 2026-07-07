@@ -8,7 +8,7 @@ from astropy.io import fits
 from astropy.table import Table
 
 from astro_denoise_metrics.__main__ import main
-from astro_denoise_metrics.detect import detect_sources
+from astro_denoise_metrics.detect import background_rms, detect_sources
 
 
 def gaussian_source(shape, x, y, flux, fwhm=3.0):
@@ -50,6 +50,32 @@ def test_detect_sources_finds_bright_sources(synthetic_scene):
     assert set(cat.dtype.names) == {"x", "y", "flux", "npix"}
 
 
+def test_reference_err_makes_threshold_comparable(synthetic_scene):
+    """A background-flattening 'denoiser' must not detect deeper for free.
+
+    The over-smoothed image keeps faint correlated wiggles that its own
+    (tiny) RMS promotes to detections; thresholding against the noisy
+    input's RMS keeps only the real sources.
+    """
+    from scipy.ndimage import gaussian_filter
+
+    image_path, clean_path, _ = synthetic_scene
+    with fits.open(image_path) as hdul:
+        noisy = np.asarray(hdul[0].data, dtype=np.float64)
+    with fits.open(clean_path) as hdul:
+        clean = np.asarray(hdul[0].data, dtype=np.float64)
+    rng = np.random.default_rng(7)
+    smoothed = clean + gaussian_filter(rng.normal(0, 1.0, clean.shape), 2.0) * 0.3
+
+    ref_rms = background_rms(noisy)
+    assert 1.0 < ref_rms < 3.0  # scene noise sigma is 2.0
+
+    self_cat = detect_sources(smoothed, thresh=1.5)
+    ref_cat = detect_sources(smoothed, thresh=1.5, err=ref_rms)
+    assert len(ref_cat) >= 6  # real sources survive the comparable threshold
+    assert len(ref_cat) < len(self_cat)  # spurious deep detections are gone
+
+
 def test_cli_writes_structured_results(synthetic_scene, tmp_path, capsys):
     image_path, clean_path, truth_path = synthetic_scene
     output = tmp_path / "results.json"
@@ -80,6 +106,32 @@ def test_cli_writes_structured_results(synthetic_scene, tmp_path, capsys):
     assert 0.0 < results["ssim"] <= 1.0
     assert results["photometric_accuracy"]["n_matched"] > 0
     assert "completeness_vs_mag" in results
+
+
+def test_cli_thresh_image_records_reference_rms(synthetic_scene, tmp_path, capsys):
+    image_path, _, truth_path = synthetic_scene
+    output = tmp_path / "results.json"
+    rc = main(
+        [
+            "--input",
+            str(image_path),
+            "--truth",
+            str(truth_path),
+            "--output",
+            str(output),
+            "--thresh",
+            "3.0",
+            "--thresh-image",
+            str(image_path),
+            "--thresh-sweep",
+            "1.5,3.0",
+        ]
+    )
+    assert rc == 0
+    results = json.loads(output.read_text())
+    assert results["parameters"]["thresh_image"] == str(image_path)
+    assert 1.0 < results["parameters"]["thresh_rms"] < 3.0  # scene noise sigma is 2.0
+    assert results["completeness"] >= 0.75
 
 
 def test_cli_reports_error_on_missing_input(tmp_path, capsys):

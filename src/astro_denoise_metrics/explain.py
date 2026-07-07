@@ -20,7 +20,10 @@ METRIC_INFO: dict[str, tuple[str, str, str]] = {
         "Fracción de las detecciones que corresponden a fuentes reales "
         "(no artefactos ni alucinaciones del método).",
         "1.0 = ninguna detección espuria. Un denoiser que 'inventa' "
-        "estructura la degrada aunque la imagen se vea más limpia.",
+        "estructura la degrada aunque la imagen se vea más limpia. "
+        "Solo es comparable entre métodos con --thresh-image (σ medido "
+        "sobre el input): si no, aplastar el fondo baja el σ propio y "
+        "'detecta más profundo' gratis.",
         "Precision estándar en catálogos; núcleo del trade-off científico.",
     ),
     "completeness_vs_mag": (
