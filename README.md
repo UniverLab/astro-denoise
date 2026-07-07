@@ -21,7 +21,12 @@ computacionales desde fuera del proceso Python; el protocolo CLI es el mismo.)
   y memoria pico RSS (GNU time).
 - **Evaluación** — en modo curado invoca el CLI de `astro-denoise-metrics`
   (su propio venv) contra el truth catalog Parquet real, por región y banda;
-  en modo clásico usa PSNR/SSIM/σ_sky con fallback numpy.
+  en modo clásico usa PSNR/SSIM/σ_sky con fallback numpy. El umbral de
+  detección se ancla al RMS de fondo de la **región de entrada** (se pasa
+  `--thresh-image` a metrics), de modo que todos los métodos se evalúan a la
+  misma profundidad absoluta: un método que aplasta el fondo ya no "detecta
+  más profundo" gratis. El reporte lo registra como `thresh_reference:
+  "input"`.
 - **Reporte** — consolida métricas por región en un reporte JSON con resumen
   global y **por banda**; opcionalmente renderiza previews PNG
   antes/después/residual por región.

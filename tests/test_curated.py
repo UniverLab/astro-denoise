@@ -211,6 +211,7 @@ def main():
         "sharpness_sf": 0.4, "flux_snr": 12.0,
         "n_detected": 10, "n_truth": 12,
         "band": args.get("--band"),
+        "thresh_image": args.get("--thresh-image"),
     }
     from pathlib import Path
     Path(args["--output"]).write_text(json.dumps(results))
@@ -255,9 +256,14 @@ class TestCuratedBenchmark:
         assert report["summary"]["n_failed"] == 0
         assert report["summary"]["mean_completeness"] == pytest.approx(0.8)
         assert set(report["summary"]["per_band"]) == {"r", "z"}
+        assert report["thresh_reference"] == "input"
+        regions_by_id = {r["id"]: r for r in manifest["regions"]}
         for run in report["runs"]:
             assert run["metrics"]["purity"] == pytest.approx(0.9)
             assert Path(run["preview"]).exists()
+            # detection threshold must be anchored to the noisy input region
+            written = json.loads(Path(run["metrics_json"]).read_text())
+            assert written["thresh_image"] == regions_by_id[run["region"]]["path"]
 
     def test_band_filter_limits_regions(self, coadd_tree, tmp_path, fake_modules):
         coadd_root, truth_root = coadd_tree

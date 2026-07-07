@@ -187,14 +187,17 @@ def run_metrics_subprocess(
     thresh=1.5,
     radius=2.0,
     thresh_sweep=None,
+    thresh_image=None,
     timeout=3600,
 ):
     """Invoke the astro-denoise-metrics CLI on a denoised image.
 
     ``truth`` may be a FITS table or a DC2 Parquet catalog (then
-    ``band`` selects the flux column). Returns the full results dict
-    read back from the metrics JSON output file, with ``peak_rss_mb``
-    attached when measurable.
+    ``band`` selects the flux column). ``thresh_image`` is the image
+    whose background RMS scales ``thresh`` (pass the noisy input so the
+    detection depth is comparable across methods). Returns the full
+    results dict read back from the metrics JSON output file, with
+    ``peak_rss_mb`` attached when measurable.
     """
     cmd = [
         python or sys.executable,
@@ -217,6 +220,8 @@ def run_metrics_subprocess(
         cmd += ["--mag-limit", str(mag_limit)]
     if thresh_sweep:
         cmd += ["--thresh-sweep", thresh_sweep]
+    if thresh_image is not None:
+        cmd += ["--thresh-image", str(thresh_image)]
     status = _run_json_subprocess(cmd, timeout, "astro_denoise_metrics")
     results = json.loads(Path(output).read_text())
     if "peak_rss_mb" in status:
@@ -392,6 +397,8 @@ def run_curated_benchmark(
                 record["peak_rss_mb"] = status["peak_rss_mb"]
 
             if region.get("truth"):
+                # threshold anchored to the noisy input's RMS so every
+                # method is scored at the same absolute detection depth
                 results = run_metrics_subprocess(
                     denoised_path,
                     region["truth"],
@@ -400,6 +407,7 @@ def run_curated_benchmark(
                     band=region["band"],
                     mag_limit=mag_limit,
                     thresh=thresh,
+                    thresh_image=region["path"],
                 )
                 record["metrics"] = {
                     key: results.get(key) for key in (*CURATED_METRIC_KEYS, "n_detected", "n_truth")
@@ -431,6 +439,7 @@ def run_curated_benchmark(
         "tracts": sorted({r["tract"] for r in regions}),
         "mag_limit": mag_limit,
         "thresh": thresh,
+        "thresh_reference": "input",
         "n_regions": len(regions),
         "runs": runs,
         "summary": summarize_curated(runs),
