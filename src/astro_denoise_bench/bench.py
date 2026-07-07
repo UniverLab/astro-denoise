@@ -311,6 +311,19 @@ CURATED_METRIC_KEYS = (
 )
 
 
+def discover_method_config(manifest_path, algo):
+    """Per-method config shipped with a curated block, if any.
+
+    A curated block may carry ``<algo>_config.json`` next to its manifest
+    (e.g. ``bm3d_config.json`` with ``variance_hdu`` pointing at the
+    VARIANCE HDU the curator writes into every region), so the method
+    runs with the block's calibration by default. An explicit
+    ``--config`` always takes precedence.
+    """
+    candidate = Path(manifest_path).parent / f"{algo}_config.json"
+    return candidate if candidate.is_file() else None
+
+
 def _stats_of(records, getter):
     """Mean, sample std and count of the finite values (std is None if n < 2)."""
     values = [v for v in (getter(r) for r in records) if v is not None and np.isfinite(v)]
@@ -454,6 +467,7 @@ def run_curated_benchmark(
         "mag_limit": mag_limit,
         "thresh": thresh,
         "thresh_reference": "input",
+        "config": str(config) if config else None,
         "n_regions": len(regions),
         "runs": runs,
         "summary": summarize_curated(runs),

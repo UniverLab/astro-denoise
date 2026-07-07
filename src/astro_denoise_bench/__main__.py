@@ -29,7 +29,12 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
-from .bench import discover_methods, run_benchmark, run_curated_benchmark
+from .bench import (
+    discover_method_config,
+    discover_methods,
+    run_benchmark,
+    run_curated_benchmark,
+)
 from .dc2 import curate, load_manifest
 
 
@@ -295,13 +300,16 @@ def main(argv=None):
     try:
         if args.manifest:
             manifest = load_manifest(args.manifest)
+            config = args.config or discover_method_config(args.manifest, args.algo)
+            if config is not None and args.config is None:
+                console.print(f"[cyan]config[/cyan] {config} (shipped with the curated block)")
             report = run_curated_benchmark(
                 manifest,
                 args.algo,
                 out_dir=args.out_dir or args.manifest.parent,
                 method_python=args.python,
                 metrics_python=args.metrics_python,
-                config=args.config,
+                config=config,
                 bands=args.bands.split(",") if args.bands else None,
                 tracts=[int(t) for t in args.tracts.split(",")] if args.tracts else None,
                 mag_limit=args.mag_limit,

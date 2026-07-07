@@ -117,6 +117,12 @@ python -m astro_denoise_bench \
   cada módulo; por defecto usan el intérprete actual. Así cada módulo mantiene
   sus dependencias aisladas.
 - `--config` se reenvía tal cual al módulo del método.
+- En modo curado, si no se pasa `--config` y existe `<algo>_config.json`
+  junto al manifest (p. ej. `bm3d_config.json` con
+  `{"variance_hdu": "VARIANCE"}`), el runner lo usa automáticamente: así el
+  método corre con la calibración del bloque (bm3d estima σ desde el plano
+  de varianza en vez de MAD). El reporte registra en `config` la ruta usada
+  (`null` si no hubo config).
 - `--previews` escribe un PNG antes/después/residual por región
   (zscale + asinh compartido entre paneles).
 - El muestreo de regiones es **pseudoaleatorio**: cada curación cubre zonas

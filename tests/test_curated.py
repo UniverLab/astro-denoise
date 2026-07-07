@@ -10,7 +10,11 @@ import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from astro_denoise_bench.bench import run_curated_benchmark, summarize_curated
+from astro_denoise_bench.bench import (
+    discover_method_config,
+    run_curated_benchmark,
+    summarize_curated,
+)
 from astro_denoise_bench.dc2 import curate, discover_coadds, load_manifest, random_positions
 from astro_denoise_bench.tui import (
     comparison_rows,
@@ -308,6 +312,34 @@ class TestCuratedBenchmark:
                 metrics_python=sys.executable,
                 tracts=[9999],
             )
+
+    def test_discover_method_config_next_to_manifest(self, tmp_path):
+        manifest = tmp_path / "manifest.json"
+        manifest.write_text("{}")
+        assert discover_method_config(manifest, "bm3d") is None
+        shipped = tmp_path / "bm3d_config.json"
+        shipped.write_text('{"variance_hdu": "VARIANCE"}')
+        assert discover_method_config(manifest, "bm3d") == shipped
+        assert discover_method_config(manifest, "unet") is None
+
+    def test_report_records_config_used(self, coadd_tree, tmp_path, fake_modules):
+        coadd_root, truth_root = coadd_tree
+        out = tmp_path / "curated"
+        curate(coadd_root, truth_root, out, size=64, regions_per_image=1, bands=["z"])
+        manifest = load_manifest(out / "manifest.json")
+        config = out / "fake_config.json"
+        config.write_text('{"variance_hdu": "VARIANCE"}')
+
+        report = run_curated_benchmark(
+            manifest,
+            "fake",
+            out_dir=out,
+            method_python=sys.executable,
+            metrics_python=sys.executable,
+            config=config,
+        )
+        assert report["config"] == str(config)
+        assert report["summary"]["n_failed"] == 0
 
     def test_summarize_curated_handles_errors(self):
         runs = [
