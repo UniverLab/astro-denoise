@@ -16,6 +16,10 @@ Usage:
 
     python -m astro_denoise_bench --list    # show discovered method modules
     python -m astro_denoise_bench --tui     # interactive dashboard
+
+    # render paper figures from completed reports (default: the three
+    # t3829 reports under --curated-out)
+    python -m astro_denoise_bench --figures --curated-out data/curated
 """
 
 from __future__ import annotations
@@ -180,6 +184,38 @@ def build_parser():
         default=None,
         help="Sampling seed; omit for a fresh one (recorded in the manifest)",
     )
+
+    figures_group = parser.add_argument_group("paper figures (--figures)")
+    figures_group.add_argument(
+        "--figures", action="store_true", help="Render paper figures from completed reports"
+    )
+    figures_group.add_argument(
+        "--reports",
+        default=None,
+        help="Comma-separated report JSON paths (default: the three t3829 reports "
+        "report_raw.json, report_bm3d_t3829.json, report_unet.json under --curated-out)",
+    )
+    figures_group.add_argument(
+        "--figures-out",
+        type=Path,
+        default=None,
+        help="Output directory for figures (default: <curated-out>/figures)",
+    )
+    figures_group.add_argument(
+        "--refresh-sweep",
+        action="store_true",
+        help="Force re-running the threshold-sweep and D8 radius-sensitivity metrics "
+        "instead of reusing the cached JSON",
+    )
+    figures_group.add_argument(
+        "--skip-sweep",
+        action="store_true",
+        help="Skip the threshold-sweep figures (only the pure completeness_vs_mag and "
+        "tradeoff figures, no metrics re-run)",
+    )
+    figures_group.add_argument(
+        "--skip-d8", action="store_true", help="Skip the D8 matching-radius-sensitivity figure"
+    )
     return parser
 
 
@@ -210,6 +246,39 @@ def run_curate_mode(console, args, parser):
             "seed": manifest["seed"],
         }
     )
+    return 0
+
+
+def run_figures_mode(console, args, parser):
+    from .figures import default_report_paths, generate_all_figures
+
+    curated_dir = args.curated_out or Path("data/curated")
+    if args.reports:
+        report_paths = [Path(p.strip()) for p in args.reports.split(",")]
+    else:
+        report_paths = default_report_paths(curated_dir)
+    missing = [p for p in report_paths if not p.is_file()]
+    if missing:
+        parser.error("--figures: report(s) not found: " + ", ".join(str(p) for p in missing))
+    figures_out = args.figures_out or curated_dir / "figures"
+
+    def progress(index, total, name):
+        console.print(f"[{index}/{total}] {name}")
+
+    result = generate_all_figures(
+        report_paths,
+        figures_out,
+        metrics_python=args.metrics_python,
+        refresh_sweep=args.refresh_sweep,
+        skip_sweep=args.skip_sweep,
+        skip_d8=args.skip_d8,
+        progress=progress,
+    )
+    console.print(f"[green]figures[/green] -> {figures_out}")
+    for name, path in result["produced"].items():
+        console.print(f"  {name}: {path}")
+    console.print(f"[cyan]{result['d8_summary']}[/cyan]")
+    emit({"status": "ok", "figures_out": str(figures_out), **result})
     return 0
 
 
@@ -296,8 +365,18 @@ def main(argv=None):
             emit({"status": "error", "error": str(exc)})
             return 1
 
+    if args.figures:
+        try:
+            return run_figures_mode(console, args, parser)
+        except Exception as exc:
+            console.print(f"[red]error:[/red] {exc}")
+            emit({"status": "error", "error": str(exc)})
+            return 1
+
     if not args.algo or not (args.data_dir or args.manifest):
-        parser.error("--algo with --data-dir or --manifest is required (or --list/--curate/--tui)")
+        parser.error(
+            "--algo with --data-dir or --manifest is required (or --list/--curate/--figures/--tui)"
+        )
 
     def progress(index, total, name):
         console.print(f"[{index}/{total}] {name}")

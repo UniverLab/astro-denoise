@@ -72,6 +72,13 @@ python -m astro_denoise_bench \
 # 3) Dashboard interactivo (métodos / dataset / comparación por banda)
 python -m astro_denoise_bench --tui --manifest data/curated/manifest.json
 
+# 4) Figuras del paper a partir de reportes ya completados
+python -m astro_denoise_bench --figures --curated-out data/curated \
+    --metrics-python ../astro-denoise-metrics/.venv/bin/python \
+    [--reports report_raw.json,report_bm3d_t3829.json,report_unet.json] \
+    [--figures-out data/curated/figures] [--refresh-sweep] \
+    [--skip-sweep] [--skip-d8]
+
 # Explicación de cada métrica (delega en astro-denoise-metrics --explain)
 python -m astro_denoise_bench --explain-metrics \
     --metrics-python ../astro-denoise-metrics/.venv/bin/python
@@ -229,6 +236,36 @@ metadatos del método, métricas) y un bloque `summary`:
   "runs": ["..."]
 }
 ```
+
+## Figuras del paper (`--figures`)
+
+`--figures` lee reportes de benchmark curado ya completados (por defecto
+`report_raw.json`, `report_bm3d_t3829.json` y `report_unet.json` bajo
+`--curated-out`) y renderiza en `--figures-out` (por defecto
+`<curated-out>/figures/`):
+
+- `completeness_vs_mag.png` — completitud vs. magnitud AB de verdad, un
+  panel por banda; línea media por método sobre sus 3 regiones, sombreado
+  min-max. Puro: solo lee el bloque `completeness_vs_mag` que cada
+  `metrics_<algo>/<region>.json` ya trae — no relanza nada.
+- `completeness_vs_threshold.png` / `purity_vs_threshold.png` — barrido de
+  umbral de detección (`--thresh-sweep`, por defecto `1,1.5,2,3,5,8`),
+  anclado al RMS de la región de entrada. Relanza el CLI de métricas por
+  región (cacheado en `figures/sweep_<algo>.json`; `--refresh-sweep` fuerza
+  recalcular).
+- `completeness_purity_tradeoff.png` — pureza media vs. completitud media
+  por banda con barras de error (std entre regiones), un marcador por
+  método. Puro: solo lee `summary.per_band` de cada reporte.
+- `matching_radius_sensitivity.png` (+ `.json`) — sensibilidad a
+  `--radius` (1, 2, 3 px) en la banda representativa `r`, un punto por
+  método; se relanza métricas 3 radios × 3 regiones × 3 métodos (cacheado,
+  también respeta `--refresh-sweep`).
+- `figures/README.md` — procedencia de cada PNG (reporte/campo de origen,
+  umbrales del barrido, banda de D8).
+
+`--skip-sweep` y `--skip-d8` permiten quedarse solo con las figuras puras
+(sin relanzar métricas). `--metrics-python` es el mismo intérprete que en
+el modo `--manifest`.
 
 ## Tests
 
