@@ -12,6 +12,7 @@ from astropy.wcs import WCS
 
 from astro_denoise_bench.bench import (
     discover_method_config,
+    parse_mag_limit,
     run_curated_benchmark,
     summarize_curated,
 )
@@ -216,6 +217,7 @@ def main():
         "n_detected": 10, "n_truth": 12,
         "band": args.get("--band"),
         "thresh_image": args.get("--thresh-image"),
+        "mag_limit": args.get("--mag-limit"),
     }
     from pathlib import Path
     Path(args["--output"]).write_text(json.dumps(results))
@@ -311,6 +313,46 @@ class TestCuratedBenchmark:
                 method_python=sys.executable,
                 metrics_python=sys.executable,
                 tracts=[9999],
+            )
+
+    def test_parse_mag_limit_scalar_and_per_band(self):
+        assert parse_mag_limit("26") == 26.0
+        assert parse_mag_limit(24.5) == 24.5
+        assert parse_mag_limit("u:24.5, z:26") == {"u": 24.5, "z": 26.0}
+        with pytest.raises(ValueError, match="band:mag"):
+            parse_mag_limit("u:")
+        with pytest.raises(ValueError):
+            parse_mag_limit("not-a-number")
+
+    def test_per_band_mag_limit_reaches_metrics(self, coadd_tree, tmp_path, fake_modules):
+        coadd_root, truth_root = coadd_tree
+        out = tmp_path / "curated"
+        curate(coadd_root, truth_root, out, size=64, regions_per_image=1)
+        manifest = load_manifest(out / "manifest.json")
+
+        report = run_curated_benchmark(
+            manifest,
+            "fake",
+            out_dir=out,
+            method_python=sys.executable,
+            metrics_python=sys.executable,
+            mag_limit={"z": 26.0, "r": 25.5},
+        )
+        assert report["mag_limit"] == {"z": 26.0, "r": 25.5}
+        assert report["summary"]["n_failed"] == 0
+        for run in report["runs"]:
+            written = json.loads(Path(run["metrics_json"]).read_text())
+            expected = {"z": "26.0", "r": "25.5"}[run["band"]]
+            assert written["mag_limit"] == expected
+
+        with pytest.raises(ValueError, match="no entry for band"):
+            run_curated_benchmark(
+                manifest,
+                "fake",
+                out_dir=out,
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                mag_limit={"z": 26.0},
             )
 
     def test_discover_method_config_next_to_manifest(self, tmp_path):

@@ -125,6 +125,12 @@ python -m astro_denoise_bench \
   (`null` si no hubo config).
 - `--previews` escribe un PNG antes/después/residual por región
   (zscale + asinh compartido entre paneles).
+- `--mag-limit` acepta un corte único (`26`) o por banda
+  (`u:24.5,g:25.8,z:26`). Un corte único diluye la completitud en bandas
+  poco profundas (u, g): fuentes truth demasiado débiles para ser
+  detectables en esa banda entran al denominador. Con el formato por banda
+  cada banda se corta a su propia profundidad; el mapeo debe cubrir todas
+  las bandas del run y queda registrado en `mag_limit` del reporte.
 - El muestreo de regiones es **pseudoaleatorio**: cada curación cubre zonas
   de cielo distintas; la semilla usada queda registrada en el manifest, así
   que un bloque publicado es exactamente regenerable con `--seed <valor>`.

@@ -32,6 +32,7 @@ from . import __version__
 from .bench import (
     discover_method_config,
     discover_methods,
+    parse_mag_limit,
     run_benchmark,
     run_curated_benchmark,
 )
@@ -116,7 +117,11 @@ def build_parser():
         "use it to evaluate only on tracts held out from a method's training",
     )
     parser.add_argument(
-        "--mag-limit", type=float, default=26.0, help="Truth AB magnitude cut (manifest mode)"
+        "--mag-limit",
+        type=parse_mag_limit,
+        default=26.0,
+        help="Truth AB magnitude cut (manifest mode): one value for all "
+        "bands (e.g. '26') or per-band 'u:24.5,g:25.8,z:26'",
     )
     parser.add_argument(
         "--thresh", type=float, default=1.5, help="Detection threshold forwarded to metrics"

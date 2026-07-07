@@ -311,6 +311,34 @@ CURATED_METRIC_KEYS = (
 )
 
 
+def parse_mag_limit(value):
+    """Parse ``--mag-limit``: a single cut or a per-band mapping.
+
+    ``"26"`` applies one AB magnitude cut to every band; ``"u:24.5,z:26"``
+    cuts each band at its own depth, so completeness in shallow bands is
+    not diluted by truth sources too faint to ever be detectable there.
+    """
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if ":" not in text:
+        return float(text)
+    limits = {}
+    for part in text.split(","):
+        band, _, mag = part.partition(":")
+        if not band.strip() or not mag.strip():
+            raise ValueError(f"invalid --mag-limit entry {part!r}; expected 'band:mag'")
+        limits[band.strip()] = float(mag)
+    return limits
+
+
+def _mag_limit_for(mag_limit, band):
+    """Resolve the magnitude cut for one band (scalar applies everywhere)."""
+    if isinstance(mag_limit, dict):
+        return mag_limit[band]
+    return mag_limit
+
+
 def discover_method_config(manifest_path, algo):
     """Per-method config shipped with a curated block, if any.
 
@@ -387,6 +415,10 @@ def run_curated_benchmark(
 
     ``tracts`` is how a learned method is scored without data leakage:
     evaluate only on tracts held out from its training split.
+
+    ``mag_limit`` is a single AB magnitude cut or a ``{band: mag}``
+    mapping (see ``parse_mag_limit``) so each band can be cut at its own
+    depth; a mapping must cover every band selected for the run.
     """
     regions = [
         r
@@ -395,6 +427,11 @@ def run_curated_benchmark(
     ]
     if not regions:
         raise FileNotFoundError("manifest has no regions matching the band/tract filter")
+
+    if isinstance(mag_limit, dict):
+        missing = sorted({r["band"] for r in regions} - set(mag_limit))
+        if missing:
+            raise ValueError(f"--mag-limit has no entry for band(s): {', '.join(missing)}")
 
     out_dir = Path(out_dir)
     denoised_dir = out_dir / f"denoised_{algo}"
@@ -432,7 +469,7 @@ def run_curated_benchmark(
                     metrics_dir / f"{region['id']}.json",
                     python=metrics_python,
                     band=region["band"],
-                    mag_limit=mag_limit,
+                    mag_limit=_mag_limit_for(mag_limit, region["band"]),
                     thresh=thresh,
                     thresh_image=region["path"],
                 )
