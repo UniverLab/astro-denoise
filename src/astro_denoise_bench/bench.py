@@ -311,21 +311,35 @@ CURATED_METRIC_KEYS = (
 )
 
 
-def _mean_of(records, getter):
+def _stats_of(records, getter):
+    """Mean, sample std and count of the finite values (std is None if n < 2)."""
     values = [v for v in (getter(r) for r in records) if v is not None and np.isfinite(v)]
-    return round(statistics.fmean(values), 4) if values else None
+    if not values:
+        return None, None, 0
+    mean = round(statistics.fmean(values), 4)
+    std = round(statistics.stdev(values), 4) if len(values) > 1 else None
+    return mean, std, len(values)
 
 
 def summarize_curated(runs):
-    """Aggregate per-region results overall and per band."""
+    """Aggregate per-region results overall and per band.
+
+    Each ``mean_<key>`` comes with ``std_<key>`` (sample std across regions,
+    None when fewer than two finite values) and ``n_<key>`` so that
+    method-vs-method differences can be judged against region-to-region
+    dispersion instead of bare means.
+    """
+
+    def put(out, key, records, getter):
+        out[f"mean_{key}"], out[f"std_{key}"], out[f"n_{key}"] = _stats_of(records, getter)
 
     def block(records):
         ok = [r for r in records if r.get("status") == "ok"]
         out = {"n_ok": len(ok), "n_failed": len(records) - len(ok)}
-        out["mean_wall_time_s"] = _mean_of(ok, lambda r: r.get("wall_time_s"))
-        out["mean_peak_rss_mb"] = _mean_of(ok, lambda r: r.get("peak_rss_mb"))
+        put(out, "wall_time_s", ok, lambda r: r.get("wall_time_s"))
+        put(out, "peak_rss_mb", ok, lambda r: r.get("peak_rss_mb"))
         for key in CURATED_METRIC_KEYS:
-            out[f"mean_{key}"] = _mean_of(ok, lambda r, k=key: r.get("metrics", {}).get(k))
+            put(out, key, ok, lambda r, k=key: r.get("metrics", {}).get(k))
         return out
 
     summary = block(runs)

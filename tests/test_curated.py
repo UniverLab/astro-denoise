@@ -318,6 +318,31 @@ class TestCuratedBenchmark:
         assert summary["n_ok"] == 1
         assert summary["n_failed"] == 1
         assert summary["per_band"]["z"]["mean_completeness"] == pytest.approx(0.5)
+        # a single finite value has no dispersion to report
+        assert summary["per_band"]["z"]["std_completeness"] is None
+        assert summary["per_band"]["z"]["n_completeness"] == 1
+
+    def test_summarize_curated_reports_dispersion(self):
+        runs = [
+            {"status": "ok", "band": "z", "wall_time_s": 1.0, "metrics": {"completeness": 0.4}},
+            {"status": "ok", "band": "z", "wall_time_s": 2.0, "metrics": {"completeness": 0.6}},
+            {"status": "ok", "band": "r", "wall_time_s": 3.0, "metrics": {"purity": 0.9}},
+        ]
+        summary = summarize_curated(runs)
+        assert summary["mean_completeness"] == pytest.approx(0.5)
+        assert summary["std_completeness"] == pytest.approx(0.1414, abs=1e-4)
+        assert summary["n_completeness"] == 2
+        assert summary["n_wall_time_s"] == 3
+        assert summary["std_wall_time_s"] == pytest.approx(1.0)
+        # purity only has one finite value overall
+        assert summary["std_purity"] is None
+        assert summary["n_purity"] == 1
+        # missing metric everywhere -> mean None, n 0
+        assert summary["mean_sky_sigma"] is None
+        assert summary["n_sky_sigma"] == 0
+        z = summary["per_band"]["z"]
+        assert z["n_completeness"] == 2
+        assert z["std_completeness"] == pytest.approx(0.1414, abs=1e-4)
 
 
 class TestTuiHelpers:

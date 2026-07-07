@@ -125,6 +125,10 @@ python -m astro_denoise_bench \
 - El reporte del modo curado agrupa las métricas globalmente y por banda
   (`summary.per_band`), e incluye memoria pico RSS por subproceso cuando
   GNU time está disponible.
+- Cada `mean_<métrica>` del summary curado va acompañada de `std_<métrica>`
+  (desviación estándar muestral entre regiones; `null` con menos de dos
+  valores finitos) y `n_<métrica>`, para que las diferencias entre métodos
+  puedan juzgarse contra la dispersión región-a-región.
 
 ## Distribución del bloque curado (Hugging Face)
 
