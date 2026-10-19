@@ -93,7 +93,7 @@ python -m astro_denoise_bench --new-method wavelet [--methods-dir /ruta]
 funcional: contrato `DenoiseMethod`, CLI con el protocolo JSON del bench,
 entry point `astro_denoise.methods`, tests que **ya pasan**, y las mismas
 convenciones del boilerplate ghscaff (layout `src/`, uv, CI centralizada,
-MIT). El flujo del investigador:
+Apache-2.0). El flujo del investigador:
 
 ```bash
 python -m astro_denoise_bench --new-method wavelet
