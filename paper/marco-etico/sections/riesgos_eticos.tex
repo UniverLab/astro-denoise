@@ -1,0 +1,105 @@
+\section{Riesgos Éticos Identificados}
+
+\subsection{Riesgo 1: Falta de Reproducibilidad Científica}
+
+\subsubsection{Descripción del Riesgo}
+
+Si los resultados de reducción de ruido no pueden ser reproducidos por investigadores independientes, la calidad científica se compromete. Esto es particularmente grave en astronomía, donde:
+
+\begin{itemize}
+    \item Las decisiones se basan en observaciones que pueden ser caras de replicar
+    \item Los datos astronómicos son únicos en el tiempo (no se pueden retomar exactamente)
+    \item La confianza pública en ciencia depende de rigor auditado
+\end{itemize}
+
+\subsubsection{Manifestación Potencial}
+
+Un investigador reporta que su método reduce ruido con 95\% de exactitud, pero cuando otros intentan validarlo:
+\begin{itemize}
+    \item No pueden acceder al código fuente
+    \item No saben exactamente qué datos fueron usados
+    \item No tienen detalles sobre parámetros o configuración
+    \item Los resultados reportados no pueden ser verificados
+\end{itemize}
+
+Resultado: La ciencia pierde credibilidad. Decisiones sobre observaciones futuras se basan en resultados no verificables.
+
+\subsubsection{Mitigación Implementada}
+
+Astro-Denoise implementa reproducibilidad mediante:
+
+\begin{enumerate}
+    \item \textbf{Código abierto}: Disponible en GitHub, con historial completo de versiones
+    \item \textbf{Datos versionados}: Especifica exactamente qué versión de DC2 fue usada
+    \item \textbf{Reportes estructurados}: Resultados en formato JSON/CSV auditables
+    \item \textbf{Documentación técnica}: Guías paso-a-paso para replicar análisis
+    \item \textbf{Cifras de validación cruzada}: Múltiples métricas independientes reportadas
+\end{enumerate}
+
+\subsection{Riesgo 2: Brecha de Acceso Institucional}
+
+\subsubsection{Descripción del Riesgo}
+
+Si solo investigadores en países aliados de LSST pueden validar y contribuir a ciencia astronómica moderna, se perpetúa una desigualdad sistémica que:
+
+\begin{itemize}
+    \item Limita oportunidades profesionales en el Sur Global
+    \item Crea dependencia científica de instituciones del Norte
+    \item Reduce diversidad en métodos y perspectivas de investigación
+    \item Desaprovecha talento emergente
+\end{itemize}
+
+\subsubsection{Manifestación Potencial}
+
+Un investigador en Bogotá o Lima identifica una mejora a un algoritmo de denoising, pero:
+\begin{itemize}
+    \item Su institución no es miembro de la alianza LSST
+    \item Puede acceder a datos LSST, pero no a pipelines computacionales de referencia
+    \item Publicar sobre métodos no estándar requiere más rigor de validación
+    \item El circuito de revisión por pares favorece autores de instituciones prestigiosas
+\end{itemize}
+
+\subsubsection{Mitigación Implementada}
+
+Astro-Denoise mitiga esto mediante:
+
+\begin{enumerate}
+    \item \textbf{Acceso sin restricción geográfica}: Código y datos sin barreras institucionales
+    \item \textbf{Infraestructura mínima}: No requiere acceso a clusters especializados
+    \item \textbf{Idioma accesible}: Documentación en español
+    \item \textbf{Arquitectura modular}: Investigadores pueden extender con sus propios algoritmos
+    \item \textbf{Estándares rigurosos}: Mismo nivel de validación para todos
+\end{enumerate}
+
+\subsection{Riesgo 3: Posible Falta de Gobernanza de Datos}
+
+\subsubsection{Descripción del Riesgo}
+
+Aunque Astro-Denoise usa datos simulados, la falta de políticas claras sobre quién puede usar los resultados, cómo se citan contribuciones, o qué pasa si datos se usan para fines no académicos, podría crear situaciones donde responsabilidades no son claras.
+
+\subsubsection{Mitigación Implementada}
+
+\begin{enumerate}
+    \item \textbf{Licencias explícitas}: Código MIT, datos CC0 (dominio público)
+    \item \textbf{Documentación de restricciones}: Uso permitido/no permitido claramente especificado
+    \item \textbf{Compliance con normativas}: Respeto a Ley 1581
+    \item \textbf{Atribución clara}: Cómo citar contribuciones científicas está documentado
+\end{enumerate}
+
+\subsection{Resumen de Riesgos y Controles}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|p{2.5cm}|p{3cm}|p{3.5cm}|}
+\hline
+\textbf{Riesgo} & \textbf{Severidad} & \textbf{Control Primario} \\
+\hline
+Irreproducibilidad & Alta & Código + datos abiertos, versionados \\
+\hline
+Acceso inequitativo & Media-Alta & Disponibilidad sin restricción geográfica \\
+\hline
+Gobernanza indefinida & Media & Licencias explícitas, documentación clara \\
+\hline
+\end{tabular}
+\end{table}

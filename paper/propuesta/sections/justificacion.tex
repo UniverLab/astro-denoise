@@ -1,0 +1,78 @@
+\chapter{Justificaci\'on}
+
+\section{Brecha identificada en el marco evaluativo}
+
+La principal brecha identificada no es la falta de modelos de denoising, sino la ausencia de un marco evaluativo unificado y orientado a validez cient\'ifica. La literatura converge en que la mejora visual no basta y que los costos de validaci\'on ya compiten con el esfuerzo de desarrollo de modelos.
+
+\subsection{Evidencia textual de la necesidad}
+
+\begin{itemize}
+    \item Akhaury et al. reportan expl\'icitamente una necesidad metodol\'ogica transversal: \enquote{there is an increasing need to develop fast and accurate deconvolution algorithms that generalize well to different images} \cite{akhaury2022deep}.
+    \item Guo et al. muestran el costo operacional de ganar profundidad observacional y justifican alternativas algor\'itmicas: \enquote{improves detection limits by 1.0 magnitude at 90\% completeness and purity} y, para un incremento similar por exposici\'on, se requerir\'ia escalar de d\'ias a cerca de un mes de observaci\'on \cite{guo2026detection}.
+    \item En la revisi\'on de Elad et al. se explicita el problema de evaluaci\'on multiojetivo: \enquote{potential solvers need to tradeoff distortion metrics (e.g. MSE) versus perception measures} \cite{elad2023revolution}.
+\end{itemize}
+
+\subsection{Implicaci\'on para esta propuesta}
+
+Este proyecto se justifica porque desplaza el centro de gravedad desde \emph{entrenar otro modelo} hacia \emph{establecer una validaci\'on reproducible y con control de sesgo}. En otras palabras, se responde al problema que la comunidad est\'a enfrentando hoy: invertir tiempo de investigaci\'on en dise\~nar marcos de evaluaci\'on comparables, auditables y ligados a impacto cient\'ifico real.
+
+\section{M\'etricas recomendadas para benchmark en LSST/DC2}
+
+Como resultado de la revisi\'on del estado del arte, se propone un marco de validaci\'on en tres capas:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Fidelidad de reconstrucci\'on}: PSNR/SSIM y error de reconstrucci\'on local.
+    \item \textbf{Validez cient\'ifica}: completitud-pureza por magnitud, error fotom\'etrico, sesgo en forma (e1/e2), impacto en detecci\'on de fuentes d\'ebiles.
+    \item \textbf{Costo operativo}: tiempo de inferencia, estabilidad por dominio y sensibilidad a mismatch de ruido instrumental.
+\end{enumerate}
+
+Esta estructura permite comparar m\'etodos heterog\'eneos (cl\'asicos, CNN, difusi\'on, f\'isica-informados) con un mismo criterio de calidad cient\'ifica y no \'unicamente perceptual.
+
+\section{Descripci\'on de datos y materiales}
+
+\subsection{Componentes del dataset}
+
+El dataset de trabajo consiste en dos componentes del release DESC DC2 (dr6-v4) del Vera Rubin Observatory. El primero es \texttt{coadd-t3828-t3829-small}, que contiene im\'agenes coadded de dos tracts del cielo simulado. Una im\'agen coadded es el resultado de apilar m\'ultiples exposiciones, lo que cancela parte del ruido aleatorio pero deja un ruido residual bajo el cual las fuentes d\'ebiles siguen siendo dif\'iciles de detectar.
+
+\bigskip
+
+El segundo componente es \texttt{truth\_match}, el cat\'alogo de verdad de la simulaci\'on, que contiene la posici\'on y el flujo exacto de cada fuente simulada. Este cat\'alogo se utiliza exclusivamente en la etapa de evaluaci\'on para calcular la completitud y pureza de los algoritmos de denoising.
+
+\subsection{Origen y tama\~nos reales}
+
+A diferencia de las versiones comprimidas, este proyecto trabaja directamente con los archivos en formato FITS para preservar la precisi\'on cient\'ifica total. Los pesos en disco son los siguientes:
+
+\begin{itemize}
+  \item \textbf{DESC DC2 Truth Match (\texttt{truth\_match}):} 52 GB (Formato FITS nativo).
+  \item \textbf{DESC DC2 Coadded Images (\texttt{coadd-t3828-t3829-small}):} 4.8 GB (Im\'agenes cient\'ificas FITS).
+\end{itemize}
+
+\bigskip
+
+\subsection{Flujo del pipeline de procesamiento}
+
+Debido a la complejidad del volumen de datos, se sigue una secuencia estrictamente modular para garantizar la integridad de las m\'etricas:
+
+\begin{mermaid}[width=0.9\linewidth, caption={Secuencia de procesamiento desde datos crudos hasta m\'etricas}, pos=t]
+sequenceDiagram
+    participant D as Datos (FITS)
+    participant P as Preprocesado
+    participant A as Algoritmos (BM3D/U-Net)
+    participant E as Evaluaci\'on (SEP/Metrics)
+
+    D->>P: Carga de HDUs (Ciencia+Varianza)
+    P->>P: Sustracci\'on de Fondo + Calibraci\'on
+    P->>A: Patches de entrada
+    A->>E: Salida Denoised (FITS)
+    E->>E: Detecci\'on de Fuentes
+    E->>E: Cross-match con Truth_match
+    Note over E: Reporte de Completitud/Pureza
+\end{mermaid}
+
+\bigskip
+
+Informaci\'on adicional y documentaci\'on del release: \url{https://data.lsstdesc.org/doc/dc2_sim_sky_survey}.
+
+\bigskip
+
+Los dos componentes mencionados ya han sido descargados y se conservan en el entorno de trabajo para evaluaci\'on reproducible.

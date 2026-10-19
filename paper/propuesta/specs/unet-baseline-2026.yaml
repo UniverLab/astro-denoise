@@ -1,0 +1,24 @@
+# CHANGE: astro-denoise-unet
+id: unet-baseline-2026
+state: active
+created_by: gpt-4-openspec
+created: 2026-05-19
+modules:
+  - astro-denoise-unet
+
+motivation: |
+  Crear un baseline de deep learning (U-Net) para comparar el desempeño de modelos clásicos vs. DL en el benchmark astronómico, siguiendo los protocolos científicos y de reproducibilidad de la plataforma.
+
+spec:
+  summary: |
+    Módulo Python con implementación canónica de U-Net para denoising de imágenes DC2 compatibles. Entrenamiento y evaluación con dataset reproducible, CLI para inferencia batch, pesos publicables en HF Hub.
+  requirements:
+    - Implementar U-Net funcional entrenada en patches DC2
+    - Exportar/guardar pesos entrenados para reproducibilidad
+    - CLI: entrada FITS, salida FITS denoised, output con métricas básicas JSON
+    - Compatible con orquestador (protocolo de entrada/salida)
+    - Documentación y ejemplos de inferencia
+  acceptance:
+    - Modelo funcional, inferencia reproducible batch vía CLI
+    - Resultados comparables a BM3D en por lo menos una métrica
+    - README y SPEC alineados, pesos accesibles públicamente

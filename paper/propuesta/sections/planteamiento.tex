@@ -1,0 +1,88 @@
+\chapter{Planteamiento del problema}
+
+\section{Pregunta de investigaci\'on}
+
+\textquestiondown C\'omo afectan las t\'ecnicas modernas de restauraci\'on de im\'agenes a la capacidad de las observaciones astron\'omicas para descubrir y caracterizar objetos tenues, y c\'omo pueden evaluarse de manera reproducible y cient\'ificamente v\'alida?
+
+\section{Objetivos}
+
+\subsection{Objetivo general}
+
+Desarrollar una plataforma de benchmarking reproducible que compare m\'etodos de reducci\'on de ruido en im\'agenes simuladas DC2 del Vera Rubin Observatory, evaluando en cada m\'etodo la recuperaci\'on de fuentes d\'ebiles, la calidad de imagen resultante y su coste computacional.
+
+\subsection{Objetivos espec\'ificos}
+
+Los objetivos espec\'ificos se presentan en el orden cronol\'ogico en que se cumplen.
+
+\begin{enumerate}
+  \item Implementar un ecosistema modular y extensible con un protocolo com\'un de l\'inea de comandos, en el que cada m\'etodo de reducci\'on de ruido (BM3D y U-Net, junto con una condici\'on de control sin procesamiento) se empaquete de forma independiente con su propio entorno y se comunique con un orquestador mediante una interfaz fija (imagen FITS de entrada y de salida, metadatos en JSON), de modo que un m\'etodo nuevo pueda incorporarse sin modificar el orquestador.
+  \item Establecer m\'etricas confiables para evaluar la recuperaci\'on de fuentes, basadas en el cruce uno a uno de las detecciones con el cat\'alogo de verdad de DC2 (completitud, pureza, completitud en funci\'on de la magnitud y precisi\'on fotom\'etrica) y complementadas con m\'etricas de calidad de imagen (PSNR, SSIM y ruido de fondo), verificando cada c\'alculo contra su definici\'on en al menos dos fuentes independientes de la literatura.
+  \item Proporcionar herramientas de medici\'on del coste computacional de cada m\'etodo (tiempo de ejecuci\'on por regi\'on, memoria m\'axima utilizada y regiones procesadas por unidad de tiempo), tomadas desde fuera del proceso del m\'etodo para que se apliquen por igual a cualquier implementaci\'on y reportadas junto con la descripci\'on del equipo en que se ejecutaron.
+  \item Desarrollar los m\'etodos de reducci\'on de ruido evaluados, BM3D como representante de los m\'etodos cl\'asicos y una U-Net como representante del aprendizaje profundo, integrados al ecosistema. La U-Net se entrena exclusivamente con regiones de DC2 no declaradas en el conjunto de evaluaci\'on, y su receta de entrenamiento y sus pesos se publican junto con el m\'etodo.
+  \item Crear un benchmark reproducible sobre un conjunto de datos curado y versionado a partir de DESC DC2, compuesto por regiones multibanda tomadas de varias zonas del cielo con su cat\'alogo de verdad. Cada versi\'on del conjunto se identifica por checksums y declara expl\'icitamente las regiones del cielo que incluye, de modo que todo resultado se reporte contra una versi\'on concreta. La reproducibilidad se entiende como la obtenci\'on de las mismas m\'etricas cient\'ificas al repetir la ejecuci\'on con la misma versi\'on de datos y de c\'odigo.
+\end{enumerate}
+
+\section{\'Arbol de problemas}
+
+A continuaci\'on se presenta el an\'alisis causal enriquecido, con una distribuci\'on sim\'etrica de factores:
+
+\begin{figure}[H]
+  \centering
+  \shorthandoff{>}
+  \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+      node distance=1.2cm and 0.4cm,
+      every node/.style={font=\small, align=center, line width=0.5pt},
+      effect/.style={rectangle, fill=gray!5, draw=gray!50, text width=3.9cm, minimum height=1.6cm, rounded corners=1pt},
+      problem/.style={rectangle, fill=gray!85, draw=gray!90, text=white, text width=11.5cm, font=\small\bfseries, minimum height=1.8cm, rounded corners=1pt},
+      cause/.style={rectangle, fill=gray!15, draw=gray!60, text width=3.8cm, minimum height=1.6cm, rounded corners=1pt},
+      connector/.style={draw=gray!70, thick, -latex},
+      labelnode/.style={font=\small\scshape\bfseries, text=black!60}
+    ]
+
+    % Problema Central
+    \node[problem] (core) at (0,0)
+      {Ausencia de un marco de evaluaci\'on independiente y reproducible que priorice m\'etricas de integridad cient\'ifica (completitud y pureza) sobre la est\'etica visual en im\'agenes del Rubin Observatory};
+
+    % Efectos (Arriba)
+    \node[effect, above=of core] (e2)
+      {\textsc{Barrera de Confianza}\\Desconfianza en modelos IA ``black-box'' sin validaci\'on externa sistem\'atica.};
+    \node[effect, left=of e2] (e1)
+      {\textsc{Sesgos Cosmol\'ogicos}\\Alteraci\'on de medidas de elipticidad y flujo d\'ebil (Weak Lensing).};
+    \node[effect, right=of e2] (e3)
+      {\textsc{Ineficiencia T\'ecnica}\\Adopci\'on de m\'etodos costosos sin beneficio probado en tareas downstream.};
+
+    % Label efectos — above=of usa el bounding box real, no minimum height
+    \node[labelnode, above=0.5cm of e2]
+      {$\uparrow$ Efectos del Problema $\uparrow$};
+
+    % Causas (Abajo)
+    \node[cause] (c1) at (-6.4,-3.2)
+      {\textsc{Sesgo de Autovalidaci\'on}\\Investigadores validan sus modelos con marcos ad-hoc no estandarizados.};
+    \node[cause] (c2) at (-2.1,-3.2)
+      {\textsc{M\'etricas Insuficientes}\\Uso predominante de PSNR/SSIM que ignoran la fidelidad fotom\'etrica.};
+    \node[cause] (c3) at (2.1,-3.2)
+      {\textsc{Opacidad Algor\'itmica}\\Falta de pipelines abiertos, semillas y pesos compartidos.};
+    \node[cause] (c4) at (6.4,-3.2)
+      {\textsc{Desconexi\'on con DC2}\\Dificultad para integrar el Truth Catalog en la validaci\'on masiva.};
+
+    % Label causas
+    \node[labelnode] at (0,-5.4)
+      {$\downarrow$ Causas Ra\'iz $\downarrow$};
+
+    % Conectores Efectos
+    \draw[connector] (core.north) -- +(0,0.5) -| (e1.south);
+    \draw[connector] (core.north) -- +(0,0.5) -- (e2.south);
+    \draw[connector] (core.north) -- +(0,0.5) -| (e3.south);
+
+    % Conectores Causas
+    \draw[connector] (c1.north) |- +(0,0.6) -| (core.south);
+    \draw[connector] (c2.north) |- +(0,0.6) -| (core.south);
+    \draw[connector] (c3.north) |- +(0,0.6) -| (core.south);
+    \draw[connector] (c4.north) |- +(0,0.6) -| (core.south);
+
+    \end{tikzpicture}
+  }
+  \shorthandon{>}
+  \caption{\'Arbol de problemas enriquecido: factores que impiden la validaci\'on objetiva del denoising astron\'omico.}
+\end{figure}

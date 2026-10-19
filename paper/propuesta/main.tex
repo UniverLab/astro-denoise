@@ -1,0 +1,107 @@
+%% main.tex - adapted from reference-template (title page and style preserved)
+%% Author updated to user's name
+\documentclass[a4paper,12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{acronym}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{lmodern}
+\usepackage{longtable}
+\usepackage{makecell}
+\usepackage{microtype}
+\usepackage[nottoc]{tocbibind}
+\usepackage{siunitx}
+\usepackage{titlesec}
+\usepackage{url}
+\usepackage{csquotes}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{positioning, babel}
+\usepackage{listings}
+\usepackage{setspace}
+\usepackage{apacite}
+\usepackage{parskip} % Added for extra line between paragraphs
+
+% Geometry and title formatting
+\geometry{top=3cm,bottom=3cm,left=3cm,right=3cm}
+\titleformat{\chapter}[display]{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{20pt}
+\titleformat{\section}[block]{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}[block]{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+\pagestyle{fancy}
+\fancyhf{}
+\cfoot{\thepage}
+
+% Project metadata
+\newcommand{\titulo}{Benchmarking de m\'etodos de reducci\'on de ruido en im\'agenes simuladas DC2 del Vera Rubin Observatory}
+\newcommand{\autor}{Jheison Martinez Bolivar}
+\newcommand{\codigo}{}
+\newcommand{\programa}{Maestr\'ia en Inteligencia Artificial}
+\newcommand{\universidad}{Universidad La Salle}
+\newcommand{\correo}{jhmartinez07@unisalle.edu.co}
+
+\hypersetup{pdfauthor={\autor},pdftitle={\titulo},pdfsubject={\programa},pdfkeywords={astro, denoising, Rubin Observatory},colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering\vspace*{\fill}
+    % show La Salle logo if provided, otherwise fallback to project image
+    \IfFileExists{assets/images/logosalle.png}{\includegraphics[width=8cm]{assets/images/logosalle.png}\\[1cm]}{\IfFileExists{assets/images/xfm8rUJf1h.png}{\includegraphics[width=8cm]{assets/images/xfm8rUJf1h.png}\\[1cm]}{}}
+    \universidad\\[0.5cm]\programa\\[2cm]
+    {\LARGE\bfseries \titulo}\\[2cm]
+    \textbf{Propuesta de Proyecto}\\[2cm]
+    {\Large \autor}
+    \par
+    {\codigo}
+    \par\vspace{1cm}
+    \correo
+    \par\vspace{2cm}
+    Fecha de entrega: \today
+    \par\vspace{1cm}
+    \vspace*{\fill}
+\end{titlepage}
+
+  \thispagestyle{empty}\newpage
+
+  % Resumen (use modular file)
+\input{sections/resumen.tex}
+
+  % Table of contents and lists (compact)
+\tableofcontents\thispagestyle{empty}
+  \listoffigures\thispagestyle{empty}
+
+  % Chapters (modular)
+\input{sections/contexto.tex}
+\input{sections/planteamiento.tex}
+\input{sections/estado_del_arte.tex}
+\input{sections/justificacion.tex}
+\input{sections/metodologia_propuesta.tex}
+\input{sections/conclusiones.tex}
+
+\appendix
+\input{sections/anexos.tex}
+
+  % References
+\bibliographystyle{apacite}
+\bibliography{bib/all_references}
+
+\end{document}

@@ -1,0 +1,26 @@
+# CHANGE: astro-denoise-bm3d
+id: bm3d-baseline-2026
+state: active
+created_by: gpt-4-openspec
+created: 2026-05-19
+modules:
+  - astro-denoise-bm3d
+
+motivation: |
+  Proveer un baseline clásico, reproducible, rápido y bien modularizado para el benchmarking científico en imágenes astronómicas DC2/LSST utilizando BM3D versión C-optimizada. Sentar la base para comparar y validar futuras variantes (deep learning, auto-supervisadas, etc.)
+
+spec:
+  summary: |
+    Módulo Python que aplica BM3D a imágenes FITS, usa el plano de varianzas (HDU 3), produce archivos FITS denoised y PNG, reporta PSNR/SSIM/σ_sky, y sirve como baseline modular para el orquestador y métricas downstream.
+  requirements:
+    - Usar bm3d>=4.0 (Makinen, C-optimizado)
+    - Entrada: patch o imagen FITS DC2, salida: FITS y PNG denoised
+    - Compatible con entorno Python 3.11 y dependencias requeridas
+    - Ejecutable vía CLI con argumentos documentados
+    - No debe requerir la versión lenta de BM3D Python puro
+    - Modular: lista para ser invocada por otros módulos (CLI, Python API)
+  acceptance:
+    - Ejecuta en tiempo razonable en imágenes DC2 (minutos por imagen)
+    - Resultados reproducibles, PSNR/SSIM/σ_sky listados en output JSON
+    - Módulo y README alineados a la SPEC global
+    - Se aísla completamente de cualquier código legacy lento/no optimizado

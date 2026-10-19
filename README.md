@@ -11,3 +11,9 @@ Status: 0.x, under active development. The three packages below are being merged
 | `astro-denoise-bench` | `packages/bench` |
 | `astro-denoise-metrics` | `packages/metrics` |
 | `astro-denoise-passthrough` | `packages/passthrough` |
+
+## Documents
+
+`paper/` holds the thesis documents as [TeXForge](https://github.com/UniverLab/texforge) projects: `propuesta` (the research proposal, APA format for Universidad de La Salle) and `marco-etico` (the ethical framework). Build one with `texforge build` inside its folder.
+
+The DC2 data is not in this repository; it stays local.

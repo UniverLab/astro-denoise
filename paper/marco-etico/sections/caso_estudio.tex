@@ -1,0 +1,94 @@
+\section{Descripción del Caso de Estudio: Astro-Denoise}
+
+\subsection{Propósito y Alcance}
+
+Astro-Denoise es una \textbf{plataforma de software abierto} que permite a investigadores:
+
+\begin{itemize}
+    \item Comparar múltiples algoritmos de reducción de ruido en imágenes astronómicas
+    \item Evaluarlos usando métricas científicas rigurosas (no solo calidad visual)
+    \item Reproducir exactamente los mismos análisis en diferentes instituciones
+    \item Contribuir con nuevos algoritmos sin requisitos técnicos exclusivos
+\end{itemize}
+
+El proyecto utiliza \textbf{datos simulados públicos} (LSST DC2) que incluyen imágenes astronómicas realistas con ruido y verdad de referencia conocida. Esto permite validar algoritmos sin acceso a datos propietarios ni colaboraciones institucionales restringidas.
+
+\subsection{Características Éticas Clave}
+
+\subsubsection{1. Código Abierto (Open Source)}
+
+Todo el código fuente está disponible en repositorios públicos (GitHub) bajo licencias permisivas. Esto significa:
+
+\begin{itemize}
+    \item Cualquier persona puede inspeccionar, criticar y mejorar el código
+    \item Ningún secreto comercial o algoritmo cerrado
+    \item Facilita reproducibilidad auditada por pares globales
+\end{itemize}
+
+\subsubsection{2. Datos Públicos y Reproducibles}
+
+Los datos utilizados son:
+
+\begin{itemize}
+    \item \textbf{LSST DC2}: Simulación pública realizada por la comunidad LSST
+    \item \textbf{Accesible globalmente}: Sin restricción geográfica, institucional o temporal
+    \item \textbf{Versionado}: Especifica exactamente qué versión de datos fue usada
+    \item \textbf{Replicable}: Otros investigadores pueden descargar y verificar exactamente los mismos datos
+\end{itemize}
+
+\subsubsection{3. Transparencia en Métricas}
+
+Los resultados no se reportan solo en términos visuales (``la imagen se ve bien''), sino mediante métricas científicas objetivas:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|p{4cm}|p{4cm}|}
+\hline
+\textbf{Métrica} & \textbf{Qué mide} \\
+\hline
+Completitud & Fracción de objetos verdaderos detectados \\
+Pureza & Fracción de detecciones que son realmente objetos \\
+PSNR/SSIM & Calidad de reconstrucción de imagen \\
+Eficiencia & Tiempo y recursos computacionales \\
+\hline
+\end{tabular}
+\end{table}
+
+Esto permite comités de evaluación y financiadores verificar independientemente que las afirmaciones científicas son precisas.
+
+\subsubsection{4. Documentación}
+
+La documentación de software está disponible en inglés, lengua estándar de la comunidad científica internacional. El documento de tesis asociado se elabora en español. En el futuro podría explorarse soporte multilingüe, aunque esto no forma parte del alcance actual del proyecto.
+
+\subsection{Acceso Global}
+
+Astro-Denoise no impone restricciones geográficas ni institucionales. Cualquier investigador, independientemente de su ubicación o afiliación, puede descargar el código, ejecutar los análisis, comparar resultados y publicar hallazgos. La infraestructura mínima requerida (una laptop moderna) y la documentación pública eliminan las barreras prácticas que habitualmente limitan la participación de investigadores fuera de grandes consorcios internacionales.
+
+\subsection{Reproducibilidad Garantizada}
+
+Todo investigador que ejecute Astro-Denoise con los mismos datos obtendrá los \textbf{mismos resultados} dentro de tolerancias numéricas esperadas. Esto es garantía ética: los resultados no dependen del laboratorio, persona o recurso político que los genere.
+
+Esto contrasta con sistemas donde:
+\begin{itemize}
+    \item Solo instituciones miembros LSST pueden validar pipelines oficiales
+    \item Resultados de investigadores externos no son fácilmente verificables
+    \item Decisiones científicas dependen de autoridades centralizadas
+\end{itemize}
+
+\subsection{Alcance de Transparencia}
+
+\textbf{Lo que sí es transparente}:
+\begin{itemize}
+    \item Código fuente (qué hace el algoritmo)
+    \item Datos de entrada (qué imágenes se procesan)
+    \item Métricas de salida (qué resultados se obtienen)
+    \item Metodología (cómo se evalúa)
+\end{itemize}
+
+\textbf{Lo que se protege apropiadamente}:
+\begin{itemize}
+    \item Datos personales (el proyecto no usa datos de sujetos humanos)
+    \item Credenciales de sistemas (no se exponen claves API)
+    \item Información propietaria de colaboradores (respetada por contrato)
+\end{itemize}

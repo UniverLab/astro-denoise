@@ -1,0 +1,74 @@
+\chapter{Metodolog\'ia propuesta}
+
+\section{Resumen}
+
+Este cap\'itulo describe el protocolo experimental propuesto para evaluar m\'etodos de denoising sobre las im\'agenes simuladas DC2 (dr6-v4) del Vera Rubin Observatory. Se prioriza la reproducibilidad absoluta: cada script, semilla aleatoria y log de entrenamiento se registra formalmente para permitir una auditor\'ia completa del proceso.
+
+\section{Flujo experimental}
+
+El flujo general del experimento est\'a diseñado para ser modular y extensible, permitiendo la comparaci\'on justa entre algoritmos de distinta naturaleza:
+
+\begin{mermaid}[width=0.9\linewidth, caption={Secuencia del flujo experimental de benchmarking}, pos=t]
+sequenceDiagram
+    participant D as Datos (DC2)
+    participant P as Preprocesado
+    participant M as M\'etodos (BM3D/U-Net)
+    participant E as Evaluaci\'on (SEP/Truth)
+
+    D->>P: Carga de Coadds + Truth
+    P->>M: Patches normalizados
+    M->>E: Imagen Denoised
+    E->>E: Detecci\'on + Matching
+    Note over E: C\'alculo completitud/pureza
+\end{mermaid}
+
+\section{Datos y preprocesado}
+
+Se emplea el release DC2 (espec\'ificamente el tract coadd-t3828-t3829-small) como conjunto principal de entrada. El cat\'alogo \texttt{truth\_match} act\'ua como la ``verdad absoluta'' para evaluar la capacidad de recuperaci\'on de los algoritmos.
+
+El preprocesado incluye la calibraci\'on de unidades, la extracci\'on de parches (patches) representativos y la normalizaci\'on basada en el ruido local. Se presta especial atenci\'on a la conservaci\'on de la PSF (Point Spread Function) local para experimentos de sensibilidad.
+
+\section{M\'etodos a comparar}
+
+En esta fase del proyecto, el benchmark se centra en dos pilares fundamentales que representan el estado del arte cl\'asico y el aprendizaje profundo supervisado:
+
+\begin{itemize}
+  \item \textbf{BM3D (Block-matching and 3D filtering):} Seleccionado como el baseline cl\'asico de referencia. Su capacidad para explotar la auto-similitud en la imagen lo hace extremadamente robusto frente a ruidos Gaussianos, aunque su costo computacional es elevado.
+  \item \textbf{U-Net (Arquitectura Convolucional Encoder-Decoder):} Representa el enfoque de Deep Learning supervisado. Se entrenar\'a sobre pares de im\'agenes ruidosas/limpias extra\'idas de las simulaciones DC2 para aprender a mapear la estructura gal\'actica subyacente.
+\end{itemize}
+
+\section{Protocolo de evaluaci\'on cient\'ifica}
+
+A diferencia de los estudios de visi\'on artificial est\'andar, esta metodolog\'ia prioriza m\'etricas con valor cient\'ifico astron\'omico:
+
+\begin{itemize}
+  \item \textbf{Completitud (Recall):} \textquestiondown Qu\'e fracci\'on de las fuentes reales presentes en el catálogo \texttt{truth\_match} somos capaces de detectar tras el denoising?
+  \item \textbf{Pureza (Precision):} \textquestiondown Cu\'antas de nuestras detecciones son fuentes reales y no artefactos o ``alucinaciones'' introducidas por el modelo de IA?
+  \item \textbf{Precisi\'on Fotom\'etrica:} Medida del bias en la magnitud y el flujo recuperado, asegurando que el denoising no altere la luminosidad intr\'inseca de los objetos.
+\end{itemize}
+
+\section{Reproducibilidad y registros}
+
+Para garantizar que cualquier investigador pueda replicar estos resultados, se siguen estrictamente las siguientes pr\'acticas:
+\begin{itemize}
+  \item Registro de semillas aleatorias en todos los procesos estoc\'asticos.
+  \item Uso de contenedores o ambientes virtuales estrictos (\texttt{requirements.txt}).
+  \item Generaci\'on autom\'atica de reportes t\'ecnicos que incluyen versiones de software y hardware utilizado.
+\end{itemize}
+
+\section{Limitaciones}
+
+Los modelos evaluados no deben haberse entrenado con las regiones del cielo declaradas en la versi\'on del conjunto de datos utilizada; de lo contrario, el resultado del benchmark tendr\'ia sesgo. Por esta raz\'on cada versi\'on del conjunto declara expl\'icitamente sus regiones. La plataforma no puede verificar c\'omo se entren\'o un modelo externo, de modo que el cumplimiento de esta condici\'on depende de la \'etica de cada investigador.
+
+\section{Plan de trabajo y entregables}
+
+Siguiendo el plan de desarrollo establecido, los hitos inmediatos son:
+
+\begin{enumerate}
+  \item Implementar y validar el baseline BM3D sobre el dataset DC2 curado.
+  \item Entrenar y optimizar la red U-Net supervisada.
+  \item Ejecutar el protocolo de comparaci\'on masiva y calcular curvas de completitud vs. pureza.
+  \item Publicar el benchmark reproducible con c\'odigo abierto y artefactos de datos.
+\end{enumerate}
+
+\paragraph{} Para m\'as detalles t\'ecnicos sobre la arquitectura del orquestador y la evoluci\'on del desarrollo, consulte la \textbf{Hoja de Ruta (Anexo A)} y las \textbf{Especificaciones de Diseño OpenSpec (Anexo B)} al final de este documento.

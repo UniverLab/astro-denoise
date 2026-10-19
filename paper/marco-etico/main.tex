@@ -1,0 +1,92 @@
+%% main.tex — Marco Ético del Proyecto Astro-Denoise
+%% Documento de evaluación ética, gobernanza de datos y ciencia abierta
+
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{acronym}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{lmodern}
+\usepackage{longtable}
+\usepackage{makecell}
+\usepackage{microtype}
+\usepackage[nottoc]{tocbibind}
+\usepackage{siunitx}
+\usepackage{titlesec}
+\usepackage{url}
+\usepackage{csquotes}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{apacite}
+\usepackage{parskip}
+
+\geometry{top=3cm,bottom=3cm,left=3cm,right=3cm}
+
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+\numberwithin{equation}{section}
+\numberwithin{figure}{section}
+\numberwithin{table}{section}
+
+\pagestyle{fancy}
+\fancyhf{}
+\cfoot{\thepage}
+
+% Project metadata
+\newcommand{\titulo}{Marco Ético del Proyecto Astro-Denoise: Reproducibilidad, Equidad y Acceso Abierto en Astronomía}
+\newcommand{\autor}{Jheison Martinez Bolivar}
+\newcommand{\codigo}{}
+\newcommand{\programa}{Maestría en Inteligencia Artificial}
+\newcommand{\universidad}{Universidad La Salle}
+\newcommand{\correo}{jhmartinez07@unisalle.edu.co}
+
+\hypersetup{pdfauthor={\autor},pdftitle={\titulo},pdfsubject={\programa},pdfkeywords={ética, astro-denoise, reproducibilidad, acceso abierto, gobernanza de datos},colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering\vspace*{\fill}
+    \IfFileExists{assets/images/logosalle.png}{\includegraphics[width=8cm]{assets/images/logosalle.png}\\[1cm]}{}
+    \universidad\\[0.5cm]\programa\\[2cm]
+    {\LARGE\bfseries \titulo}\\[2cm]
+    \textbf{Evaluación Ética de Proyecto de Investigación}\\[2cm]
+    {\Large \autor}
+    \par
+    {\codigo}
+    \par\vspace{1cm}
+    \correo
+    \par\vspace{2cm}
+    Fecha: \today
+    \par\vspace{1cm}
+    \vspace*{\fill}
+\end{titlepage}
+
+\thispagestyle{empty}\newpage
+
+\input{sections/resumen.tex}
+\input{sections/introduccion.tex}
+\input{sections/caso_estudio.tex}
+\input{sections/riesgos_eticos.tex}
+\input{sections/marco_etico.tex}
+\input{sections/principios_aplicados.tex}
+\input{sections/recomendaciones.tex}
+
+\bibliographystyle{apacite}
+\bibliography{bib/referencias_eticas}
+
+\end{document}

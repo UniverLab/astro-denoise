@@ -1,0 +1,24 @@
+# CHANGE: astro-denoise-metrics
+id: metrics-modulo-2026
+state: active
+created_by: gpt-4-openspec
+created: 2026-05-19
+modules:
+  - astro-denoise-metrics
+
+motivation: |
+  Implementar métricas científicas downstream para evaluar métodos de denoising en imágenes astronómicas, de acuerdo al objetivo central: medir completitud, pureza y precisión fotométrica del recobro de fuentes en simulaciones DC2/LSST.
+
+spec:
+  summary: |
+    Módulo Python que calcula y reporta métricas científicas (completitud, pureza, precisión fotométrica) usando detección de fuentes (SEP/photutils), comparación vs. truth catalog y métricas técnicas (PSNR, SSIM, σ_sky).
+  requirements:
+    - Calcular completitud, pureza y precisión fotométrica en imágenes FITS denoised vs. truth catalog público
+    - Reportar PSNR, SSIM, σ_sky como métricas secundarias
+    - Preparar CLI y API documentados para ser invocados desde el orquestador (bench)
+    - Procesar imágenes FITS y tabular resultados en JSON/csv
+    - Uso de stack: Python, SEP, photutils, astropy, numpy, scikit-learn, scikit-image
+  acceptance:
+    - Output estructurado y documentado con valores de métricas para cada invocación
+    - Compatible con protocolos definidos en la SPEC global (input/output, CLI/API)
+    - Documentación clara en README y apuntando al spec

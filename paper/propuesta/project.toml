@@ -1,0 +1,8 @@
+[document]
+title = "astro-denoise-benchmark-apa-unisalle"
+author = "Jheison Martinez Bolivar"
+template = "apa-unisalle"
+
+[build]
+entry = "main.tex"
+bibliography = "bib/all_references.bib"
