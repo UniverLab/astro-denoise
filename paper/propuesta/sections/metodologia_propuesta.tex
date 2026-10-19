@@ -2,7 +2,7 @@
 
 \section{Resumen}
 
-Este cap\'itulo describe el protocolo experimental propuesto para evaluar m\'etodos de denoising sobre las im\'agenes simuladas DC2 (dr6-v4) del Vera Rubin Observatory. Se prioriza la reproducibilidad absoluta: cada script, semilla aleatoria y log de entrenamiento se registra formalmente para permitir una auditor\'ia completa del proceso.
+Este cap\'itulo describe el protocolo experimental propuesto para evaluar m\'etodos de reducci\'on de ruido sobre las im\'agenes simuladas DC2 (dr6-v4) del Vera Rubin Observatory. Se prioriza la reproducibilidad absoluta: cada script, semilla aleatoria y log de entrenamiento se registra formalmente para permitir una auditor\'ia completa del proceso.
 
 \section{Flujo experimental}
 
@@ -12,14 +12,14 @@ El flujo general del experimento est\'a diseñado para ser modular y extensible,
 sequenceDiagram
     participant D as Datos (DC2)
     participant P as Preprocesado
-    participant M as M\'etodos (BM3D/U-Net)
-    participant E as Evaluaci\'on (SEP/Truth)
+    participant M as Métodos (BM3D/U-Net)
+    participant E as Evaluación (SEP/Truth)
 
     D->>P: Carga de Coadds + Truth
     P->>M: Patches normalizados
-    M->>E: Imagen Denoised
-    E->>E: Detecci\'on + Matching
-    Note over E: C\'alculo completitud/pureza
+    M->>E: Imagen procesada
+    E->>E: Detección + Matching
+    Note over E: Cálculo completitud/pureza
 \end{mermaid}
 
 \section{Datos y preprocesado}
@@ -30,11 +30,12 @@ El preprocesado incluye la calibraci\'on de unidades, la extracci\'on de parches
 
 \section{M\'etodos a comparar}
 
-En esta fase del proyecto, el benchmark se centra en dos pilares fundamentales que representan el estado del arte cl\'asico y el aprendizaje profundo supervisado:
+En esta fase del proyecto, el benchmark compara dos m\'etodos que representan el enfoque cl\'asico y el aprendizaje profundo, frente a una condici\'on de control:
 
 \begin{itemize}
-  \item \textbf{BM3D (Block-matching and 3D filtering):} Seleccionado como el baseline cl\'asico de referencia. Su capacidad para explotar la auto-similitud en la imagen lo hace extremadamente robusto frente a ruidos Gaussianos, aunque su costo computacional es elevado.
-  \item \textbf{U-Net (Arquitectura Convolucional Encoder-Decoder):} Representa el enfoque de Deep Learning supervisado. Se entrenar\'a sobre pares de im\'agenes ruidosas/limpias extra\'idas de las simulaciones DC2 para aprender a mapear la estructura gal\'actica subyacente.
+  \item \textbf{BM3D (Block-matching and 3D filtering):} Seleccionado como el baseline cl\'asico de referencia. Su capacidad para explotar la auto-similitud en la imagen lo hace extremadamente robusto frente a ruidos Gaussianos, aunque su coste computacional es elevado.
+  \item \textbf{U-Net (Arquitectura Convolucional Encoder-Decoder):} Representa el enfoque de aprendizaje profundo. Se entrena exclusivamente con regiones de DC2 no declaradas en el conjunto de evaluaci\'on, y su receta de entrenamiento y sus pesos se publican junto con el m\'etodo.
+  \item \textbf{Condici\'on de control:} La imagen sin procesamiento, que se eval\'ua con el mismo protocolo y permite medir si un m\'etodo aporta algo frente a no reducir el ruido.
 \end{itemize}
 
 \section{Protocolo de evaluaci\'on cient\'ifica}
@@ -42,17 +43,20 @@ En esta fase del proyecto, el benchmark se centra en dos pilares fundamentales q
 A diferencia de los estudios de visi\'on artificial est\'andar, esta metodolog\'ia prioriza m\'etricas con valor cient\'ifico astron\'omico:
 
 \begin{itemize}
-  \item \textbf{Completitud (Recall):} \textquestiondown Qu\'e fracci\'on de las fuentes reales presentes en el catálogo \texttt{truth\_match} somos capaces de detectar tras el denoising?
+  \item \textbf{Completitud (Recall):} \textquestiondown Qu\'e fracci\'on de las fuentes reales presentes en el catálogo \texttt{truth\_match} somos capaces de detectar tras la reducci\'on de ruido?
   \item \textbf{Pureza (Precision):} \textquestiondown Cu\'antas de nuestras detecciones son fuentes reales y no artefactos o ``alucinaciones'' introducidas por el modelo de IA?
-  \item \textbf{Precisi\'on Fotom\'etrica:} Medida del bias en la magnitud y el flujo recuperado, asegurando que el denoising no altere la luminosidad intr\'inseca de los objetos.
+  \item \textbf{Precisi\'on Fotom\'etrica:} Medida del bias en la magnitud y el flujo recuperado, asegurando que la reducci\'on de ruido no altere la luminosidad intr\'inseca de los objetos.
 \end{itemize}
+
+Estas m\'etricas se complementan con medidas de calidad de imagen (PSNR, SSIM y ruido de fondo) y con el coste computacional de cada m\'etodo (tiempo de ejecuci\'on, memoria m\'axima y regiones procesadas por unidad de tiempo).
 
 \section{Reproducibilidad y registros}
 
 Para garantizar que cualquier investigador pueda replicar estos resultados, se siguen estrictamente las siguientes pr\'acticas:
 \begin{itemize}
   \item Registro de semillas aleatorias en todos los procesos estoc\'asticos.
-  \item Uso de contenedores o ambientes virtuales estrictos (\texttt{requirements.txt}).
+  \item Entornos aislados por m\'odulo con dependencias fijadas en un archivo de bloqueo (\texttt{uv.lock}).
+  \item Conjunto de datos versionado: cada versi\'on se identifica por checksums y declara sus regiones del cielo.
   \item Generaci\'on autom\'atica de reportes t\'ecnicos que incluyen versiones de software y hardware utilizado.
 \end{itemize}
 
@@ -62,13 +66,14 @@ Los modelos evaluados no deben haberse entrenado con las regiones del cielo decl
 
 \section{Plan de trabajo y entregables}
 
-Siguiendo el plan de desarrollo establecido, los hitos inmediatos son:
+El plan sigue el orden cronol\'ogico de los objetivos espec\'ificos. Cada etapa cierra con un entregable verificable:
 
 \begin{enumerate}
-  \item Implementar y validar el baseline BM3D sobre el dataset DC2 curado.
-  \item Entrenar y optimizar la red U-Net supervisada.
-  \item Ejecutar el protocolo de comparaci\'on masiva y calcular curvas de completitud vs. pureza.
-  \item Publicar el benchmark reproducible con c\'odigo abierto y artefactos de datos.
+  \item \textbf{Ecosistema modular:} orquestador, protocolo com\'un de l\'inea de comandos, condici\'on de control y plantilla para incorporar m\'etodos nuevos. Etapa completada.
+  \item \textbf{M\'etricas confiables:} verificaci\'on de cada c\'alculo contra su definici\'on en al menos dos fuentes independientes de la literatura, con la referencia documentada por m\'etrica.
+  \item \textbf{Coste computacional:} incorporaci\'on de la descripci\'on del equipo de ejecuci\'on a cada reporte del benchmark.
+  \item \textbf{M\'etodos:} reentrenamiento de la U-Net con regiones de DC2 no declaradas y publicaci\'on de su receta de entrenamiento y sus pesos.
+  \item \textbf{Benchmark:} primera versi\'on del conjunto curado con checksums y regiones declaradas, ejecuci\'on oficial de los tres m\'etodos sobre todas sus regiones y an\'alisis comparativo de resultados.
 \end{enumerate}
 
-\paragraph{} Para m\'as detalles t\'ecnicos sobre la arquitectura del orquestador y la evoluci\'on del desarrollo, consulte la \textbf{Hoja de Ruta (Anexo A)} y las \textbf{Especificaciones de Diseño OpenSpec (Anexo B)} al final de este documento.
+El software resultante se presenta para registro ante la Direcci\'on Nacional de Derecho de Autor de Colombia, previsto para diciembre de 2026, como modalidad de grado, y posteriormente se someter\'a al \textit{Journal of Open Source Software} (JOSS).

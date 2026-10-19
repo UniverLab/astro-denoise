@@ -2,7 +2,7 @@
 
 \section{Brecha identificada en el marco evaluativo}
 
-La principal brecha identificada no es la falta de modelos de denoising, sino la ausencia de un marco evaluativo unificado y orientado a validez cient\'ifica. La literatura converge en que la mejora visual no basta y que los costos de validaci\'on ya compiten con el esfuerzo de desarrollo de modelos.
+La principal brecha identificada no es la falta de modelos de reducci\'on de ruido, sino la ausencia de un marco evaluativo unificado y orientado a validez cient\'ifica. La literatura converge en que la mejora visual no basta y que los costos de validaci\'on ya compiten con el esfuerzo de desarrollo de modelos.
 
 \subsection{Evidencia textual de la necesidad}
 
@@ -36,7 +36,7 @@ El dataset de trabajo consiste en dos componentes del release DESC DC2 (dr6-v4) 
 
 \bigskip
 
-El segundo componente es \texttt{truth\_match}, el cat\'alogo de verdad de la simulaci\'on, que contiene la posici\'on y el flujo exacto de cada fuente simulada. Este cat\'alogo se utiliza exclusivamente en la etapa de evaluaci\'on para calcular la completitud y pureza de los algoritmos de denoising.
+El segundo componente es \texttt{truth\_match}, el cat\'alogo de verdad de la simulaci\'on, que contiene la posici\'on y el flujo exacto de cada fuente simulada. Este cat\'alogo se utiliza exclusivamente en la etapa de evaluaci\'on para calcular la completitud y pureza de los algoritmos de reducci\'on de ruido.
 
 \subsection{Origen y tama\~nos reales}
 
@@ -58,13 +58,13 @@ sequenceDiagram
     participant D as Datos (FITS)
     participant P as Preprocesado
     participant A as Algoritmos (BM3D/U-Net)
-    participant E as Evaluaci\'on (SEP/Metrics)
+    participant E as Evaluación (SEP/Metrics)
 
     D->>P: Carga de HDUs (Ciencia+Varianza)
-    P->>P: Sustracci\'on de Fondo + Calibraci\'on
+    P->>P: Sustracción de Fondo + Calibración
     P->>A: Patches de entrada
-    A->>E: Salida Denoised (FITS)
-    E->>E: Detecci\'on de Fuentes
+    A->>E: Imagen procesada (FITS)
+    E->>E: Detección de Fuentes
     E->>E: Cross-match con Truth_match
     Note over E: Reporte de Completitud/Pureza
 \end{mermaid}
