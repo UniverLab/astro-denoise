@@ -2,15 +2,15 @@
 
 \section{Panorama general}
 
-El estado del arte en denoising astron\'omico muestra un desplazamiento claro desde m\'etodos cl\'asicos (wavelets, variacionales, priors expl\'icitos) hacia arquitecturas profundas con modelado probabil\'istico (U-Net, Transformers y difusi\'on), pero con una tensi\'on metodol\'ogica persistente: mejorar la calidad visual no garantiza preservar la validez cient\'ifica de la inferencia downstream \cite{elad2023revolution, vojtekova2020unet, shirasaki2021noise, akhaury2025joint, guo2026detection}.
+El estado del arte en reducci\'on de ruido en im\'agenes astron\'omicas muestra un desplazamiento claro desde m\'etodos cl\'asicos (wavelets, variacionales, priors expl\'icitos) hacia arquitecturas profundas con modelado probabil\'istico (U-Net, Transformers y difusi\'on), pero con una tensi\'on metodol\'ogica persistente: mejorar la calidad visual no garantiza preservar la validez cient\'ifica de la inferencia downstream \cite{elad2023revolution, vojtekova2020unet, shirasaki2021noise, akhaury2025joint, guo2026detection}.
 
-En este trabajo, el foco no es presentar otro denoiser aislado, sino consolidar una base comparativa reproducible para LSST/DC2 donde la evaluaci\'on se centre en impacto cient\'ifico medible (detecci\'on, fotometr\'ia, forma, sesgo) y no solo en fidelidad perceptual.
+En este trabajo, el foco no es presentar otro m\'etodo aislado de reducci\'on de ruido, sino consolidar una base comparativa reproducible para LSST/DC2 donde la evaluaci\'on se centre en impacto cient\'ifico medible (detecci\'on, fotometr\'ia, forma, sesgo) y no solo en fidelidad perceptual.
 
 \section{Proceso de cribado y s\'intesis (PRISMA + RAG)}
 
 La revisi\'on se reconstruy\'o de forma transparente sobre un corpus inicial de 304 PDFs, combinando aprendizaje activo (ASReview), re-ranqueo sem\'antico con RAG y verificaci\'on manual de metadatos en PDF. El uso de RAG se limit\'o a priorizaci\'on y trazabilidad sem\'antica de relaciones complejas (m\'etricas, tareas, sesgos), mientras que la decisi\'on final de inclusi\'on/exclusi\'on fue auditada manualmente.
 
-\begin{mermaid}[width=0.95\linewidth, caption={Diagrama PRISMA del cribado (corpus astron\'omico de denoising)}, pos=t]
+\begin{mermaid}[width=0.95\linewidth, caption={Diagrama PRISMA del cribado (corpus astron\'omico de reducci\'on de ruido)}, pos=t]
 flowchart TD
     A[Registros identificados\\nPDFs recuperados: n = 304]
     B[Cribado semantico\\nASReview + RAG sobre titulos/abstracts\\nRegistros cribados: n = 304]
@@ -23,7 +23,7 @@ flowchart TD
 
 \subsection{Criterios de inclusi\'on y exclusi\'on}
 
-\textbf{Inclusi\'on}: trabajos con evaluaci\'on de denoising/deconvoluci\'on sobre im\'agenes astron\'omicas (\'optico o dominios cercanos), con reporte de m\'etricas cuantitativas y/o impacto en tareas cient\'ificas (detecci\'on, fotometr\'ia, morfolog\'ia, weak lensing).\\
+\textbf{Inclusi\'on}: trabajos con evaluaci\'on de reducci\'on de ruido/deconvoluci\'on sobre im\'agenes astron\'omicas (\'optico o dominios cercanos), con reporte de m\'etricas cuantitativas y/o impacto en tareas cient\'ificas (detecci\'on, fotometr\'ia, morfolog\'ia, weak lensing).\\
 \textbf{Exclusi\'on}: estudios fuera del dominio astron\'omico y trabajos sin validaci\'on emp\'irica relevante.
 
 \subsection{Estad\'isticas del corpus final}
@@ -35,7 +35,7 @@ flowchart TD
         \toprule
         Grupo & Conteo & Proporci\'on \\
         \midrule
-        Core astron\'omico (denoising/deconvoluci\'on) & 31 & 62\% \\
+        N\'ucleo astron\'omico (reducci\'on de ruido/deconvoluci\'on) & 31 & 62\% \\
         Reviews/surveys & 8 & 16\% \\
         M\'etodos de soporte (difusi\'on, Poisson, PnP, etc.) & 11 & 22\% \\
         \bottomrule

@@ -2,14 +2,14 @@
 
 \section{Conclusiones sobre el Estado del Arte}
 
-Tras el an\'alisis exhaustivo de la literatura y el proceso de cribado mediante aprendizaje activo, se concluye que el campo del denoising astron\'omico se encuentra en un punto de inflexi\'on. Mientras que los m\'etodos cl\'asicos como BM3D siguen siendo el est\'andar de oro en cuanto a interpretabilidad f\'isica, las redes neuronales profundas (U-Net) ofrecen una capacidad de recuperaci\'on de señal que supera las t\'ecnicas de filtrado tradicionales en t\'erminos de relaci\'on señal-ruido. Sin embargo, la adopci\'on de IA introduce riesgos de sesgo morfol\'ogico que a\'un no han sido plenamente cuantificados de forma reproducible.
+Tras el an\'alisis exhaustivo de la literatura y el proceso de cribado mediante aprendizaje activo, se concluye que el campo de la reducci\'on de ruido en im\'agenes astron\'omicas se encuentra en un punto de inflexi\'on. Mientras que los m\'etodos cl\'asicos como BM3D siguen siendo el est\'andar de oro en cuanto a interpretabilidad f\'isica, las redes neuronales profundas (U-Net) ofrecen una capacidad de recuperaci\'on de señal que supera las t\'ecnicas de filtrado tradicionales en t\'erminos de relaci\'on señal-ruido. Sin embargo, la adopci\'on de IA introduce riesgos de sesgo morfol\'ogico que a\'un no han sido plenamente cuantificados de forma reproducible.
 
 \section{Brechas Detectadas}
 
 A partir de la revisi\'on sistem\'atica, se han identificado las siguientes brechas cr\'iticas que justifican el desarrollo de este benchmark:
 
 \begin{enumerate}
-    \item \textbf{Falta de Protocolos Estandarizados:} Existe una disparidad significativa en c\'omo se reportan los resultados de denoising. Muchos trabajos se limitan a m\'etricas perceptuales (PSNR) sin validar el impacto en el catálogo de fuentes real.
+    \item \textbf{Falta de Protocolos Estandarizados:} Existe una disparidad significativa en c\'omo se reportan los resultados de reducci\'on de ruido. Muchos trabajos se limitan a m\'etricas perceptuales (PSNR) sin validar el impacto en el catálogo de fuentes real.
     \item \textbf{Desconexi\'on con la Ciencia Downstream:} Se detecta una necesidad urgente de evaluar si los algoritmos de IA preservan la fotometr\'ia y la morfolog\'ia necesarias para estudios de lente gravitatoria d\'ebil.
     \item \textbf{Dificultad de Reproducci\'on:} Pocos trabajos proporcionan el pipeline completo (scripts de preprocesado + semillas + pesos del modelo), lo que impide la validaci\'on independiente de las mejoras reportadas.
     \item \textbf{Sesgo de Autovalidaci\'on:} Se observa una tendencia recurrente donde los autores proponen simult\'aneamente el modelo y su propio marco de validaci\'on o métricas personalizadas. Esta pr\'actica puede inducir sesgos de confirmaci\'on, ya que las condiciones del experimento suelen estar optimizadas para las fortalezas del algoritmo propuesto, careciendo de un contraste objetivo frente a un estándar externo.
