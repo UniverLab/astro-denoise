@@ -29,6 +29,8 @@ import statistics
 import subprocess
 import sys
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from importlib.metadata import entry_points
 from pathlib import Path
 
@@ -177,30 +179,37 @@ def run_method_subprocess(algo, noisy, output, config=None, python=None, timeout
     return _run_json_subprocess(cmd, timeout, module)
 
 
+@dataclass(frozen=True)
+class MetricsOptions:
+    """Options forwarded to the metrics CLI (defaults are the science)."""
+
+    python: str | None = None
+    band: str | None = None
+    mag_limit: float | dict[str, float] | None = None
+    thresh: float = 1.5
+    radius: float = 2.0
+    thresh_sweep: str | None = None
+    thresh_image: str | Path | None = None
+    timeout: int = 3600
+
+
 def run_metrics_subprocess(
     denoised,
     truth,
     output,
-    python=None,
-    band=None,
-    mag_limit=None,
-    thresh=1.5,
-    radius=2.0,
-    thresh_sweep=None,
-    thresh_image=None,
-    timeout=3600,
+    options=MetricsOptions(),  # noqa: B008
 ):
     """Invoke the astro-denoise-metrics CLI on a denoised image.
 
     ``truth`` may be a FITS table or a DC2 Parquet catalog (then
-    ``band`` selects the flux column). ``thresh_image`` is the image
-    whose background RMS scales ``thresh`` (pass the noisy input so the
-    detection depth is comparable across methods). Returns the full
-    results dict read back from the metrics JSON output file, with
-    ``peak_rss_mb`` attached when measurable.
+    ``options.band`` selects the flux column). ``options.thresh_image``
+    is the image whose background RMS scales ``options.thresh`` (pass the
+    noisy input so the detection depth is comparable across methods).
+    Returns the full results dict read back from the metrics JSON output
+    file, with ``peak_rss_mb`` attached when measurable.
     """
     cmd = [
-        python or sys.executable,
+        options.python or sys.executable,
         "-m",
         "astro_denoise.metrics",
         "--input",
@@ -210,19 +219,19 @@ def run_metrics_subprocess(
         "--output",
         str(output),
         "--thresh",
-        str(thresh),
+        str(options.thresh),
         "--radius",
-        str(radius),
+        str(options.radius),
     ]
-    if band:
-        cmd += ["--band", band]
-    if mag_limit is not None:
-        cmd += ["--mag-limit", str(mag_limit)]
-    if thresh_sweep:
-        cmd += ["--thresh-sweep", thresh_sweep]
-    if thresh_image is not None:
-        cmd += ["--thresh-image", str(thresh_image)]
-    status = _run_json_subprocess(cmd, timeout, "astro_denoise.metrics")
+    if options.band:
+        cmd += ["--band", options.band]
+    if options.mag_limit is not None:
+        cmd += ["--mag-limit", str(options.mag_limit)]
+    if options.thresh_sweep:
+        cmd += ["--thresh-sweep", options.thresh_sweep]
+    if options.thresh_image is not None:
+        cmd += ["--thresh-image", str(options.thresh_image)]
+    status = _run_json_subprocess(cmd, options.timeout, "astro_denoise.metrics")
     results = json.loads(Path(output).read_text())
     if "peak_rss_mb" in status:
         results["peak_rss_mb"] = status["peak_rss_mb"]
@@ -391,27 +400,93 @@ def summarize_curated(runs):
     return summary
 
 
+@dataclass(frozen=True)
+class CuratedOptions:
+    """Options for ``run_curated_benchmark`` (defaults are the science)."""
+
+    method_python: str | None = None
+    metrics_python: str | None = None
+    config: str | Path | None = None
+    bands: list[str] | None = None
+    tracts: list[int] | None = None
+    mag_limit: float | dict[str, float] = 26.0
+    thresh: float = 1.5
+    previews: bool = False
+    progress: Callable[[int, int, str], None] | None = None
+
+
+def _evaluate_one_region(region, algo, out_dir, options):
+    """Denoise, score and optionally preview a single curated region."""
+    out_dir = Path(out_dir)
+    denoised_path = out_dir / f"denoised_{algo}" / f"{region['id']}.fits"
+    metrics_path = out_dir / f"metrics_{algo}" / f"{region['id']}.json"
+    record = {
+        "region": region["id"],
+        "band": region["band"],
+        "tract": region["tract"],
+        "output": str(denoised_path),
+    }
+    start = time.perf_counter()
+    try:
+        status = run_method_subprocess(
+            algo, region["path"], denoised_path, config=options.config, python=options.method_python
+        )
+        record["wall_time_s"] = round(time.perf_counter() - start, 4)
+        record["status"] = status.get("status", "ok")
+        if "peak_rss_mb" in status:
+            record["peak_rss_mb"] = status["peak_rss_mb"]
+
+        if region.get("truth"):
+            # threshold anchored to the noisy input's RMS so every
+            # method is scored at the same absolute detection depth
+            results = run_metrics_subprocess(
+                denoised_path,
+                region["truth"],
+                metrics_path,
+                options=MetricsOptions(
+                    python=options.metrics_python,
+                    band=region["band"],
+                    mag_limit=_mag_limit_for(options.mag_limit, region["band"]),
+                    thresh=options.thresh,
+                    thresh_image=region["path"],
+                ),
+            )
+            record["metrics"] = {
+                key: results.get(key) for key in (*CURATED_METRIC_KEYS, "n_detected", "n_truth")
+            }
+            record["metrics_json"] = str(metrics_path)
+
+        if options.previews:
+            from .previews import render_preview
+
+            preview_dir = out_dir / f"previews_{algo}"
+            preview_dir.mkdir(parents=True, exist_ok=True)
+            record["preview"] = render_preview(
+                region["path"],
+                denoised_path,
+                preview_dir / f"{region['id']}.png",
+                title=f"{region['id']} — {algo}",
+            )
+    except Exception as exc:
+        record["wall_time_s"] = round(time.perf_counter() - start, 4)
+        record["status"] = "error"
+        record["error"] = str(exc)
+    return record
+
+
 def run_curated_benchmark(
     manifest,
     algo,
     out_dir,
-    method_python=None,
-    metrics_python=None,
-    config=None,
-    bands=None,
-    tracts=None,
-    mag_limit=26.0,
-    thresh=1.5,
-    previews=False,
-    progress=None,
+    options=CuratedOptions(),  # noqa: B008
 ):
     """Benchmark ``algo`` over a curated DC2 region block.
 
     For every manifest region (optionally filtered by ``bands`` and/or
-    ``tracts``): denoise via the method's CLI, evaluate against the
-    region's truth catalog via the metrics CLI (projected by WCS, per
-    band), and optionally render a before/after/residual PNG preview.
-    Returns the consolidated report grouped overall and per band.
+    ``tracts`` in ``options``): denoise via the method's CLI, evaluate
+    against the region's truth catalog via the metrics CLI (projected by
+    WCS, per band), and optionally render a before/after/residual PNG
+    preview. Returns the consolidated report grouped overall and per band.
 
     ``tracts`` is how a learned method is scored without data leakage:
     evaluate only on tracts held out from its training split.
@@ -423,77 +498,26 @@ def run_curated_benchmark(
     regions = [
         r
         for r in manifest["regions"]
-        if (not bands or r["band"] in bands) and (not tracts or r.get("tract") in tracts)
+        if (not options.bands or r["band"] in options.bands)
+        and (not options.tracts or r.get("tract") in options.tracts)
     ]
     if not regions:
         raise FileNotFoundError("manifest has no regions matching the band/tract filter")
 
-    if isinstance(mag_limit, dict):
-        missing = sorted({r["band"] for r in regions} - set(mag_limit))
+    if isinstance(options.mag_limit, dict):
+        missing = sorted({r["band"] for r in regions} - set(options.mag_limit))
         if missing:
             raise ValueError(f"--mag-limit has no entry for band(s): {', '.join(missing)}")
 
     out_dir = Path(out_dir)
-    denoised_dir = out_dir / f"denoised_{algo}"
-    metrics_dir = out_dir / f"metrics_{algo}"
-    denoised_dir.mkdir(parents=True, exist_ok=True)
-    metrics_dir.mkdir(parents=True, exist_ok=True)
+    for sub_dir in (f"denoised_{algo}", f"metrics_{algo}"):
+        (out_dir / sub_dir).mkdir(parents=True, exist_ok=True)
 
     runs = []
     for index, region in enumerate(regions, start=1):
-        if progress:
-            progress(index, len(regions), region["id"])
-        denoised_path = denoised_dir / f"{region['id']}.fits"
-        record = {
-            "region": region["id"],
-            "band": region["band"],
-            "tract": region["tract"],
-            "output": str(denoised_path),
-        }
-        start = time.perf_counter()
-        try:
-            status = run_method_subprocess(
-                algo, region["path"], denoised_path, config=config, python=method_python
-            )
-            record["wall_time_s"] = round(time.perf_counter() - start, 4)
-            record["status"] = status.get("status", "ok")
-            if "peak_rss_mb" in status:
-                record["peak_rss_mb"] = status["peak_rss_mb"]
-
-            if region.get("truth"):
-                # threshold anchored to the noisy input's RMS so every
-                # method is scored at the same absolute detection depth
-                results = run_metrics_subprocess(
-                    denoised_path,
-                    region["truth"],
-                    metrics_dir / f"{region['id']}.json",
-                    python=metrics_python,
-                    band=region["band"],
-                    mag_limit=_mag_limit_for(mag_limit, region["band"]),
-                    thresh=thresh,
-                    thresh_image=region["path"],
-                )
-                record["metrics"] = {
-                    key: results.get(key) for key in (*CURATED_METRIC_KEYS, "n_detected", "n_truth")
-                }
-                record["metrics_json"] = str(metrics_dir / f"{region['id']}.json")
-
-            if previews:
-                from .previews import render_preview
-
-                preview_dir = out_dir / f"previews_{algo}"
-                preview_dir.mkdir(parents=True, exist_ok=True)
-                record["preview"] = render_preview(
-                    region["path"],
-                    denoised_path,
-                    preview_dir / f"{region['id']}.png",
-                    title=f"{region['id']} — {algo}",
-                )
-        except Exception as exc:
-            record["wall_time_s"] = round(time.perf_counter() - start, 4)
-            record["status"] = "error"
-            record["error"] = str(exc)
-        runs.append(record)
+        if options.progress:
+            options.progress(index, len(regions), region["id"])
+        runs.append(_evaluate_one_region(region, algo, out_dir, options))
 
     return {
         "module": "astro-denoise-bench",
@@ -501,10 +525,10 @@ def run_curated_benchmark(
         "algorithm": algo,
         "bands": sorted({r["band"] for r in regions}),
         "tracts": sorted({r["tract"] for r in regions}),
-        "mag_limit": mag_limit,
-        "thresh": thresh,
+        "mag_limit": options.mag_limit,
+        "thresh": options.thresh,
         "thresh_reference": "input",
-        "config": str(config) if config else None,
+        "config": str(options.config) if options.config else None,
         "n_regions": len(regions),
         "runs": runs,
         "summary": summarize_curated(runs),

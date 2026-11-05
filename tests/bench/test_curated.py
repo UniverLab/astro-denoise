@@ -11,6 +11,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 from astro_denoise.bench.bench import (
+    CuratedOptions,
     discover_method_config,
     parse_mag_limit,
     run_curated_benchmark,
@@ -254,10 +255,12 @@ class TestCuratedBenchmark:
         report = run_curated_benchmark(
             manifest,
             "fake",
-            out_dir=out,
-            method_python=sys.executable,
-            metrics_python=sys.executable,
-            previews=True,
+            out,
+            options=CuratedOptions(
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                previews=True,
+            ),
         )
         assert report["n_regions"] == 4
         assert report["summary"]["n_failed"] == 0
@@ -272,6 +275,49 @@ class TestCuratedBenchmark:
             written = json.loads(Path(run["metrics_json"]).read_text())
             assert written["thresh_image"] == regions_by_id[run["region"]]["path"]
 
+    def test_report_schema_top_level_and_run_keys(self, coadd_tree, tmp_path, fake_modules):
+        coadd_root, truth_root = coadd_tree
+        out = tmp_path / "curated"
+        curate(coadd_root, truth_root, out, size=64, regions_per_image=1)
+        manifest = load_manifest(out / "manifest.json")
+
+        report = run_curated_benchmark(
+            manifest,
+            "fake",
+            out,
+            options=CuratedOptions(
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                previews=True,
+            ),
+        )
+        assert sorted(report) == [
+            "algorithm",
+            "bands",
+            "config",
+            "kind",
+            "mag_limit",
+            "module",
+            "n_regions",
+            "runs",
+            "summary",
+            "thresh",
+            "thresh_reference",
+            "tracts",
+        ]
+        assert sorted(report["runs"][0]) == [
+            "band",
+            "metrics",
+            "metrics_json",
+            "output",
+            "peak_rss_mb",
+            "preview",
+            "region",
+            "status",
+            "tract",
+            "wall_time_s",
+        ]
+
     def test_band_filter_limits_regions(self, coadd_tree, tmp_path, fake_modules):
         coadd_root, truth_root = coadd_tree
         out = tmp_path / "curated"
@@ -281,10 +327,12 @@ class TestCuratedBenchmark:
         report = run_curated_benchmark(
             manifest,
             "fake",
-            out_dir=out,
-            method_python=sys.executable,
-            metrics_python=sys.executable,
-            bands=["z"],
+            out,
+            options=CuratedOptions(
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                bands=["z"],
+            ),
         )
         assert report["n_regions"] == 1
         assert report["bands"] == ["z"]
@@ -298,10 +346,12 @@ class TestCuratedBenchmark:
         report = run_curated_benchmark(
             manifest,
             "fake",
-            out_dir=out,
-            method_python=sys.executable,
-            metrics_python=sys.executable,
-            tracts=[3828],
+            out,
+            options=CuratedOptions(
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                tracts=[3828],
+            ),
         )
         assert report["n_regions"] == 2
         assert report["tracts"] == [3828]
@@ -310,10 +360,12 @@ class TestCuratedBenchmark:
             run_curated_benchmark(
                 manifest,
                 "fake",
-                out_dir=out,
-                method_python=sys.executable,
-                metrics_python=sys.executable,
-                tracts=[9999],
+                out,
+                options=CuratedOptions(
+                    method_python=sys.executable,
+                    metrics_python=sys.executable,
+                    tracts=[9999],
+                ),
             )
 
     def test_parse_mag_limit_scalar_and_per_band(self):
@@ -334,10 +386,12 @@ class TestCuratedBenchmark:
         report = run_curated_benchmark(
             manifest,
             "fake",
-            out_dir=out,
-            method_python=sys.executable,
-            metrics_python=sys.executable,
-            mag_limit={"z": 26.0, "r": 25.5},
+            out,
+            options=CuratedOptions(
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                mag_limit={"z": 26.0, "r": 25.5},
+            ),
         )
         assert report["mag_limit"] == {"z": 26.0, "r": 25.5}
         assert report["summary"]["n_failed"] == 0
@@ -350,10 +404,12 @@ class TestCuratedBenchmark:
             run_curated_benchmark(
                 manifest,
                 "fake",
-                out_dir=out,
-                method_python=sys.executable,
-                metrics_python=sys.executable,
-                mag_limit={"z": 26.0},
+                out,
+                options=CuratedOptions(
+                    method_python=sys.executable,
+                    metrics_python=sys.executable,
+                    mag_limit={"z": 26.0},
+                ),
             )
 
     def test_discover_method_config_next_to_manifest(self, tmp_path):
@@ -376,10 +432,12 @@ class TestCuratedBenchmark:
         report = run_curated_benchmark(
             manifest,
             "fake",
-            out_dir=out,
-            method_python=sys.executable,
-            metrics_python=sys.executable,
-            config=config,
+            out,
+            options=CuratedOptions(
+                method_python=sys.executable,
+                metrics_python=sys.executable,
+                config=config,
+            ),
         )
         assert report["config"] == str(config)
         assert report["summary"]["n_failed"] == 0

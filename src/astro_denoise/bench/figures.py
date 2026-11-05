@@ -32,6 +32,8 @@ from __future__ import annotations
 import json
 import statistics
 import tempfile
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import matplotlib
@@ -40,7 +42,7 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from .bench import run_metrics_subprocess
+from .bench import MetricsOptions, run_metrics_subprocess
 
 BAND_ORDER = ("u", "g", "r", "i", "z", "y")
 DEFAULT_THRESH_SWEEP = "1,1.5,2,3,5,8"
@@ -252,13 +254,15 @@ def _region_sweep(run, meta, thresholds, metrics_python):
             run["output"],
             meta["truth"],
             out_path,
-            python=metrics_python,
-            band=run["band"],
-            mag_limit=params.get("mag_limit"),
-            thresh=params.get("thresh", 1.5),
-            radius=params.get("radius", 2.0),
-            thresh_sweep=thresholds,
-            thresh_image=params.get("thresh_image"),
+            options=MetricsOptions(
+                python=metrics_python,
+                band=run["band"],
+                mag_limit=params.get("mag_limit"),
+                thresh=params.get("thresh", 1.5),
+                radius=params.get("radius", 2.0),
+                thresh_sweep=thresholds,
+                thresh_image=params.get("thresh_image"),
+            ),
         )
     return results.get("detection_rate", {})
 
@@ -445,12 +449,14 @@ def run_radius_sensitivity(
                         run["output"],
                         meta["truth"],
                         out_path,
-                        python=metrics_python,
-                        band=band,
-                        mag_limit=params.get("mag_limit"),
-                        thresh=params.get("thresh", 1.5),
-                        radius=radius,
-                        thresh_image=params.get("thresh_image"),
+                        options=MetricsOptions(
+                            python=metrics_python,
+                            band=band,
+                            mag_limit=params.get("mag_limit"),
+                            thresh=params.get("thresh", 1.5),
+                            radius=radius,
+                            thresh_image=params.get("thresh_image"),
+                        ),
                     )
                 region_completeness.append(res.get("completeness"))
                 region_purity.append(res.get("purity"))
@@ -596,17 +602,24 @@ def write_readme(out_dir, thresholds, band, radii, summary_line):
     return str(path)
 
 
+@dataclass(frozen=True)
+class FigureOptions:
+    """Options for ``generate_all_figures`` (defaults are the paper's)."""
+
+    metrics_python: str | None = None
+    thresholds: str = DEFAULT_THRESH_SWEEP
+    refresh_sweep: bool = False
+    skip_sweep: bool = False
+    skip_d8: bool = False
+    d8_band: str = D8_BAND
+    d8_radii: tuple[float, ...] = D8_RADII
+    progress: Callable[[int, int, str], None] | None = None
+
+
 def generate_all_figures(
     report_paths,
     out_dir,
-    metrics_python=None,
-    thresholds=DEFAULT_THRESH_SWEEP,
-    refresh_sweep=False,
-    skip_sweep=False,
-    skip_d8=False,
-    d8_band=D8_BAND,
-    d8_radii=D8_RADII,
-    progress=None,
+    options=FigureOptions(),  # noqa: B008
 ):
     """Render every paper figure into ``out_dir``; returns produced paths + D8 summary."""
     out_dir = Path(out_dir)
@@ -619,17 +632,17 @@ def generate_all_figures(
         )
     }
 
-    if not skip_sweep:
+    if not options.skip_sweep:
         agg_by_algo = {}
         for report in reports:
             algo = report["algorithm"]
             sweep = load_or_run_sweep(
                 report,
                 out_dir / f"sweep_{algo}.json",
-                thresholds=thresholds,
-                metrics_python=metrics_python,
-                refresh=refresh_sweep,
-                progress=progress,
+                thresholds=options.thresholds,
+                metrics_python=options.metrics_python,
+                refresh=options.refresh_sweep,
+                progress=options.progress,
             )
             agg_by_algo[algo] = aggregate_sweep_by_band(sweep)
         produced["completeness_vs_threshold"] = plot_metric_vs_threshold(
@@ -647,20 +660,22 @@ def generate_all_figures(
     )
 
     d8_summary = "matching-radius sensitivity: skipped (--skip-d8)"
-    if not skip_d8:
+    if not options.skip_d8:
         d8_data = load_or_run_radius_sensitivity(
             reports,
             out_dir / "matching_radius_sensitivity.json",
-            band=d8_band,
-            radii=d8_radii,
-            metrics_python=metrics_python,
-            refresh=refresh_sweep,
-            progress=progress,
+            band=options.d8_band,
+            radii=options.d8_radii,
+            metrics_python=options.metrics_python,
+            refresh=options.refresh_sweep,
+            progress=options.progress,
         )
         produced["matching_radius_sensitivity"] = plot_radius_sensitivity(
             d8_data, out_dir / "matching_radius_sensitivity.png"
         )
         d8_summary = radius_sensitivity_summary(d8_data)
 
-    produced["readme"] = write_readme(out_dir, thresholds, d8_band, d8_radii, d8_summary)
+    produced["readme"] = write_readme(
+        out_dir, options.thresholds, options.d8_band, options.d8_radii, d8_summary
+    )
     return {"produced": produced, "d8_summary": d8_summary}

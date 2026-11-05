@@ -34,6 +34,7 @@ from rich.table import Table
 
 from . import __version__
 from .bench import (
+    CuratedOptions,
     discover_method_config,
     discover_methods,
     parse_mag_limit,
@@ -266,7 +267,7 @@ def run_curate_mode(console, args, parser):
 
 
 def run_figures_mode(console, args, parser):
-    from .figures import default_report_paths, generate_all_figures
+    from .figures import FigureOptions, default_report_paths, generate_all_figures
 
     curated_dir = args.curated_out or Path("data/curated")
     if args.reports:
@@ -284,11 +285,13 @@ def run_figures_mode(console, args, parser):
     result = generate_all_figures(
         report_paths,
         figures_out,
-        metrics_python=args.metrics_python,
-        refresh_sweep=args.refresh_sweep,
-        skip_sweep=args.skip_sweep,
-        skip_d8=args.skip_d8,
-        progress=progress,
+        options=FigureOptions(
+            metrics_python=args.metrics_python,
+            refresh_sweep=args.refresh_sweep,
+            skip_sweep=args.skip_sweep,
+            skip_d8=args.skip_d8,
+            progress=progress,
+        ),
     )
     console.print(f"[green]figures[/green] -> {figures_out}")
     for name, path in result["produced"].items():
@@ -407,16 +410,18 @@ def _handle_run(console, args, parser):
             report = run_curated_benchmark(
                 manifest,
                 args.algo,
-                out_dir=args.out_dir or args.manifest.parent,
-                method_python=args.python,
-                metrics_python=args.metrics_python,
-                config=config,
-                bands=args.bands.split(",") if args.bands else None,
-                tracts=[int(t) for t in args.tracts.split(",")] if args.tracts else None,
-                mag_limit=args.mag_limit,
-                thresh=args.thresh,
-                previews=args.previews,
-                progress=progress,
+                args.out_dir or args.manifest.parent,
+                options=CuratedOptions(
+                    method_python=args.python,
+                    metrics_python=args.metrics_python,
+                    config=config,
+                    bands=args.bands.split(",") if args.bands else None,
+                    tracts=[int(t) for t in args.tracts.split(",")] if args.tracts else None,
+                    mag_limit=args.mag_limit,
+                    thresh=args.thresh,
+                    previews=args.previews,
+                    progress=progress,
+                ),
             )
         else:
             report = run_benchmark(

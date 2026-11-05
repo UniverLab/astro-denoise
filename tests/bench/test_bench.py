@@ -1,14 +1,19 @@
 """Unit tests for dataset collection, fallback metrics and summaries."""
 
+import json
+
 import numpy as np
 import pytest
 from astropy.io import fits
 
+from astro_denoise.bench import bench as bench_mod
 from astro_denoise.bench.bench import (
+    MetricsOptions,
     _fallback_psnr,
     _fallback_sky_sigma,
     collect_patches,
     load_image,
+    run_metrics_subprocess,
     summarize,
 )
 
@@ -16,6 +21,62 @@ from astro_denoise.bench.bench import (
 def write_fits(path, data=None):
     data = data if data is not None else np.zeros((16, 16), dtype=np.float32)
     fits.PrimaryHDU(data).writeto(path)
+
+
+class TestRunMetricsSubprocess:
+    def test_builds_command_from_options(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def fake_run_json_subprocess(cmd, timeout, label):
+            captured.update(cmd=cmd, timeout=timeout, label=label)
+            return {"peak_rss_mb": 12.5}
+
+        monkeypatch.setattr(bench_mod, "_run_json_subprocess", fake_run_json_subprocess)
+        output = tmp_path / "metrics.json"
+        output.write_text(json.dumps({"completeness": 0.8}))
+
+        results = run_metrics_subprocess(
+            tmp_path / "denoised.fits",
+            tmp_path / "truth.parquet",
+            output,
+            options=MetricsOptions(
+                python="/venv/bin/python",
+                band="z",
+                mag_limit=26.0,
+                thresh=2.5,
+                radius=3.0,
+                thresh_sweep="1,2,3",
+                thresh_image=tmp_path / "noisy.fits",
+                timeout=42,
+            ),
+        )
+
+        assert captured["cmd"] == [
+            "/venv/bin/python",
+            "-m",
+            "astro_denoise.metrics",
+            "--input",
+            str(tmp_path / "denoised.fits"),
+            "--truth",
+            str(tmp_path / "truth.parquet"),
+            "--output",
+            str(output),
+            "--thresh",
+            "2.5",
+            "--radius",
+            "3.0",
+            "--band",
+            "z",
+            "--mag-limit",
+            "26.0",
+            "--thresh-sweep",
+            "1,2,3",
+            "--thresh-image",
+            str(tmp_path / "noisy.fits"),
+        ]
+        assert captured["timeout"] == 42
+        assert captured["label"] == "astro_denoise.metrics"
+        assert results == {"completeness": 0.8, "peak_rss_mb": 12.5}
 
 
 class TestCollectPatches:

@@ -297,7 +297,11 @@ class TestGenerateAllFiguresPureSubset:
             report_paths.append(path)
 
         out_dir = tmp_path / "figures"
-        result = fig.generate_all_figures(report_paths, out_dir, skip_sweep=True, skip_d8=True)
+        result = fig.generate_all_figures(
+            report_paths,
+            out_dir,
+            options=fig.FigureOptions(skip_sweep=True, skip_d8=True),
+        )
 
         assert _png_written(out_dir / "completeness_vs_mag.png")
         assert _png_written(out_dir / "completeness_purity_tradeoff.png")
