@@ -1,6 +1,6 @@
 """astro-denoise-bench: orchestrator for the astro-denoise benchmark ecosystem."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .bench import (
     CuratedOptions,

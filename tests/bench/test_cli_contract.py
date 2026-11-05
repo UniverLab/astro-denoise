@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
+import astro_denoise.bench
+import astro_denoise.metrics
+import astro_denoise_passthrough
 from astro_denoise.bench.__main__ import build_parser, main
 
 SNAPSHOT_PATH = Path(__file__).parent / "snapshots" / "cli_parser.json"
+PYPROJECT_PATH = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
 
 def _snapshot(parser):
@@ -59,3 +64,14 @@ def test_no_args_exits_with_usage_error(capsys):
     with pytest.raises(SystemExit) as excinfo:
         main([])
     assert excinfo.value.code == 2
+
+
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="tomllib requires Python 3.11+")
+def test_versions_match_pyproject():
+    import tomllib
+
+    expected = tomllib.loads(PYPROJECT_PATH.read_text())["project"]["version"]
+    assert expected == "0.4.0"
+    assert astro_denoise.bench.__version__ == expected
+    assert astro_denoise.metrics.__version__ == expected
+    assert astro_denoise_passthrough.__version__ == expected
