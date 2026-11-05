@@ -304,5 +304,4 @@ astro-denoise-bench/
 ```
 
 ---
-Este módulo forma parte de la plataforma `astro-denoise`; véase
-[`CONTEXT_v2.md`](../../CONTEXT_v2.md) para arquitectura y motivación.
+Este módulo forma parte de la plataforma `astro-denoise`.

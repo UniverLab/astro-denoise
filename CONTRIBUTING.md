@@ -1,12 +1,12 @@
-# Contributing to astro-denoise-bench
+# Contributing to astro-denoise
 
 Thank you for your interest in contributing!
 
 ## Development workflow
 
 ```bash
-git clone https://github.com/UniverLab/astro-denoise-bench.git
-cd astro-denoise-bench
+git clone https://github.com/UniverLab/astro-denoise.git
+cd astro-denoise
 uv sync --all-extras
 uv run pytest
 ```
@@ -26,7 +26,7 @@ reusable workflow.
 | `PYPI_API_TOKEN` | API token to publish packages to [PyPI](https://pypi.org) | [pypi.org/manage/account/token](https://pypi.org/manage/account/token/) → API Tokens → New Token |
 
 Configure secrets at:
-`https://github.com/UniverLab/astro-denoise-bench/settings/secrets/actions`
+`https://github.com/UniverLab/astro-denoise/settings/secrets/actions`
 
 > **Tip:** If you use [ghscaff](https://github.com/UniverLab/ghscaff), you can run `ghscaff apply` to configure missing secrets interactively.
 

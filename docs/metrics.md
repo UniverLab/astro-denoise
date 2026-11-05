@@ -2,7 +2,7 @@
 
 > Módulo de métricas downstream científico para el benchmark astro-denoise.
 
-Implementa la capa de evaluación de la plataforma [astro-denoise](../../CONTEXT_v2.md):
+Implementa la capa de evaluación de la plataforma astro-denoise:
 mide cómo un método de denoising afecta la **recuperación de fuentes**
 (completitud/pureza contra catálogo truth) además de métricas clásicas de
 calidad de imagen (PSNR, SSIM, σ_sky).
@@ -170,5 +170,4 @@ astro-denoise-metrics/
 ```
 
 ---
-Este submódulo forma parte de la plataforma `astro-denoise`; véase
-[`CONTEXT_v2.md`](../../CONTEXT_v2.md) para arquitectura y criterios.
+Este submódulo forma parte de la plataforma `astro-denoise`.
