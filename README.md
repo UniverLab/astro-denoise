@@ -1,5 +1,7 @@
 # astro-denoise
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23989629.svg)](https://doi.org/10.5281/zenodo.23989629)
+
 Benchmarking of noise-reduction methods on simulated DC2 images of the Vera Rubin Observatory.
 
 This repository is the core of the project: the benchmark harness, the science metrics and the no-processing control method. The BM3D and U-Net methods live in their own repositories and plug in through the `astro_denoise.methods` entry point.

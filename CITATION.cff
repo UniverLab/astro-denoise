@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use astro-denoise, please cite it using the metadata below."
+message: "If you use astro-denoise, please cite it using the concept DOI below, which always resolves to the latest version."
 title: "astro-denoise: reproducible benchmark of noise-reduction methods for Rubin DC2 images"
 type: software
 authors:
@@ -7,6 +7,10 @@ authors:
     given-names: "Jheison"
     affiliation: "UniverLab"
     orcid: "https://orcid.org/0009-0007-3668-102X"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23989629
+    description: "Concept DOI (all versions)"
 repository-code: "https://github.com/UniverLab/astro-denoise"
 url: "https://univerlab.org/astro-denoise/"
 license: Apache-2.0
