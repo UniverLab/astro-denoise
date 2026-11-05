@@ -121,7 +121,7 @@ python -m astro_denoise.metrics \
 ```json
 {
   "module": "astro-denoise-metrics",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "n_detected": 142,
   "n_truth": 150,
   "completeness": 0.89,
