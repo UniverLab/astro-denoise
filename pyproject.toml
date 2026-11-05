@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astro-denoise"
+version = "0.4.0"
+description = "Reproducible benchmark of noise-reduction methods for simulated Rubin DC2 images"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["numpy>=1.26", "astropy>=6.0", "rich>=13.0"]
+
+[project.optional-dependencies]
+bench = ["matplotlib>=3.8", "textual>=0.80", "pyarrow>=15.0", "huggingface_hub>=0.24"]
+metrics = ["scipy>=1.11", "sep>=1.2", "photutils>=1.10", "scikit-image>=0.22", "pyarrow>=15.0"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.8", "mypy>=1.13"]
+
+[project.scripts]
+astro-denoise-bench = "astro_denoise.bench.__main__:main"
+astro-denoise-metrics = "astro_denoise.metrics.__main__:main"
+
+[project.entry-points."astro_denoise.methods"]
+passthrough = "astro_denoise_passthrough.denoiser:PassthroughDenoiser"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["astro_denoise*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["paper"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"
+
+[tool.coverage.run]
+source = ["astro_denoise", "astro_denoise_passthrough"]
+
+[tool.uv]
+constraint-dependencies = [
+    "numpy==2.5.0; python_version >= '3.12'",
+    "astropy==8.0.0; python_version >= '3.12'",
+    "scipy==1.18.0; python_version >= '3.12'",
+    "sep==1.4.1; python_version >= '3.12'",
+    "photutils==3.0.0; python_version >= '3.12'",
+    "scikit-image==0.26.0; python_version >= '3.12'",
+]
