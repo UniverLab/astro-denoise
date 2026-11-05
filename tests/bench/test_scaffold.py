@@ -3,10 +3,15 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
-from astro_denoise.bench.scaffold import scaffold_method
+from astro_denoise.bench.scaffold import _files, scaffold_method
+
+SNAPSHOT = Path(__file__).parent / "snapshots" / "scaffold_wavelet.json"
+WAVELET_ARGS = ("wavelet", "wavelet denoising method for the astro-denoise benchmark")
+PLACEHOLDERS = ("@PKG@", "@REPO@", "@NAME@", "@NAME_CAP@", "@DESCRIPTION@")
 
 
 class TestScaffoldStructure:
@@ -39,6 +44,19 @@ class TestScaffoldStructure:
         scaffold_method("wavelet", out_dir=tmp_path)
         with pytest.raises(FileExistsError):
             scaffold_method("wavelet", out_dir=tmp_path)
+
+
+class TestGeneratedContent:
+    def test_files_match_snapshot(self):
+        expected = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+        rendered = _files(*WAVELET_ARGS)
+        assert list(rendered) == list(expected)
+        assert rendered == expected
+
+    def test_no_unreplaced_placeholders(self):
+        for path, content in _files(*WAVELET_ARGS).items():
+            for placeholder in PLACEHOLDERS:
+                assert placeholder not in content, f"{placeholder} left in {path}"
 
 
 class TestScaffoldRunsOutOfTheBox:
