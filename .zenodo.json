@@ -1,0 +1,15 @@
+{
+  "upload_type": "software",
+  "title": "astro-denoise: reproducible benchmark of noise-reduction methods for Rubin DC2 images",
+  "description": "<p><strong>astro-denoise</strong> is an open-source platform that compares noise-reduction methods on simulated Vera C. Rubin Observatory DC2 images, scoring each by the faint sources it recovers against the truth catalogue, the image quality it leaves and its computational cost. This repository holds the benchmark harness, the science metrics and the no-processing control method; other methods plug in through the <code>astro_denoise.methods</code> entry point.</p><p>Beta, 0.x: the API may still change. The DC2 data is not included.</p>",
+  "creators": [
+    { "name": "Martinez Bolivar, Jheison", "affiliation": "UniverLab", "orcid": "0009-0007-3668-102X" }
+  ],
+  "license": "apache-2.0",
+  "access_right": "open",
+  "keywords": ["astronomy", "image denoising", "noise reduction", "benchmark", "Vera C. Rubin Observatory", "LSST", "DC2", "reproducible research", "Python"],
+  "related_identifiers": [
+    { "identifier": "https://univerlab.org/astro-denoise/", "relation": "isDocumentedBy", "scheme": "url" }
+  ],
+  "language": "eng"
+}

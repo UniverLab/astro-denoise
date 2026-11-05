@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use astro-denoise, please cite it using the metadata below."
+title: "astro-denoise: reproducible benchmark of noise-reduction methods for Rubin DC2 images"
+type: software
+authors:
+  - family-names: "Martinez Bolivar"
+    given-names: "Jheison"
+    affiliation: "UniverLab"
+    orcid: "https://orcid.org/0009-0007-3668-102X"
+repository-code: "https://github.com/UniverLab/astro-denoise"
+url: "https://univerlab.org/astro-denoise/"
+license: Apache-2.0
+version: 0.4.0
+date-released: 2026-11-05
+keywords:
+  - astronomy
+  - image denoising
+  - benchmark
+  - Vera C. Rubin Observatory
+  - reproducible research
