@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from astro_denoise_metrics import (
+from astro_denoise.metrics import (
     completeness,
     completeness_vs_mag,
     photometric_accuracy,
@@ -12,7 +12,7 @@ from astro_denoise_metrics import (
     sky_sigma,
     ssim,
 )
-from astro_denoise_metrics.metrics import match_catalogs
+from astro_denoise.metrics.metrics import match_catalogs
 
 
 def catalog(x, y, flux=None):

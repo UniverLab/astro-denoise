@@ -12,8 +12,8 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from astro_denoise_bench.__main__ import main
-from astro_denoise_bench.bench import run_benchmark, run_method_subprocess
+from astro_denoise.bench.__main__ import main
+from astro_denoise.bench.bench import run_benchmark, run_method_subprocess
 
 FAKE_MAIN = """
 import argparse, json

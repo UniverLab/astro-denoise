@@ -12,7 +12,7 @@ Responsibilities:
   the module is importable in-process (entry point available), it can
   also run in-process.
 * **Evaluation** — compute image-quality metrics against the clean
-  reference patch when one exists. Uses ``astro_denoise_metrics`` when
+  reference patch when one exists. Uses ``astro_denoise.metrics`` when
   importable, otherwise a built-in numpy PSNR / sky-sigma fallback.
 * **Reporting** — consolidate per-patch timing and metrics into a
   comparative JSON report.
@@ -77,7 +77,7 @@ def load_image(path):
 
 
 # ---------------------------------------------------------------------------
-# metrics (astro_denoise_metrics when available, numpy fallback otherwise)
+# metrics (astro_denoise.metrics when available, numpy fallback otherwise)
 # ---------------------------------------------------------------------------
 
 
@@ -101,9 +101,9 @@ def _fallback_sky_sigma(image):
 
 
 def evaluate_patch(denoised, clean):
-    """Metrics for one denoised patch; richer if astro_denoise_metrics exists."""
+    """Metrics for one denoised patch; richer if astro_denoise.metrics exists."""
     try:
-        from astro_denoise_metrics import psnr, sky_sigma, ssim
+        from astro_denoise.metrics import psnr, sky_sigma, ssim
 
         metrics = {"sky_sigma": sky_sigma(denoised)}
         if clean is not None:
@@ -202,7 +202,7 @@ def run_metrics_subprocess(
     cmd = [
         python or sys.executable,
         "-m",
-        "astro_denoise_metrics",
+        "astro_denoise.metrics",
         "--input",
         str(denoised),
         "--truth",
@@ -222,7 +222,7 @@ def run_metrics_subprocess(
         cmd += ["--thresh-sweep", thresh_sweep]
     if thresh_image is not None:
         cmd += ["--thresh-image", str(thresh_image)]
-    status = _run_json_subprocess(cmd, timeout, "astro_denoise_metrics")
+    status = _run_json_subprocess(cmd, timeout, "astro_denoise.metrics")
     results = json.loads(Path(output).read_text())
     if "peak_rss_mb" in status:
         results["peak_rss_mb"] = status["peak_rss_mb"]

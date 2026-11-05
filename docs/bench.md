@@ -39,7 +39,7 @@ computacionales desde fuera del proceso Python; el protocolo CLI es el mismo.)
 uv sync --all-extras
 ```
 
-Esto crea `.venv/` e instala el paquete en modo editable (`src/astro_denoise_bench/`),
+Esto crea `.venv/` e instala el paquete en modo editable (`src/astro_denoise/bench/`),
 registrando el comando `astro-denoise-bench` y las dependencias de desarrollo
 (pytest, ruff, mypy).
 
@@ -47,17 +47,17 @@ registrando el comando `astro-denoise-bench` y las dependencias de desarrollo
 
 ```bash
 # Listar módulos de métodos descubiertos (entry points instalados)
-python -m astro_denoise_bench --list
+python -m astro_denoise.bench --list
 
 # 1) Curar el bloque heterogéneo DC2 (regiones × bandas + manifest)
-python -m astro_denoise_bench --curate \
+python -m astro_denoise.bench --curate \
     --coadd-root data/coadd-t3828-t3829-small \
     --truth-root data/truth_match \
     --curated-out data/curated \
     [--size 256] [--regions-per-image 3] [--bands z,r] [--seed 12345]
 
 # 2) Benchmark sobre el bloque curado con el motor de métricas real
-python -m astro_denoise_bench \
+python -m astro_denoise.bench \
     --algo bm3d \
     --manifest data/curated/manifest.json \
     --python ../astro-denoise-bm3d/.venv/bin/python \
@@ -70,21 +70,21 @@ python -m astro_denoise_bench \
 # benchmark no puntúa regiones que la red ya vio.
 
 # 3) Dashboard interactivo (métodos / dataset / comparación por banda)
-python -m astro_denoise_bench --tui --manifest data/curated/manifest.json
+python -m astro_denoise.bench --tui --manifest data/curated/manifest.json
 
 # 4) Figuras del paper a partir de reportes ya completados
-python -m astro_denoise_bench --figures --curated-out data/curated \
+python -m astro_denoise.bench --figures --curated-out data/curated \
     --metrics-python ../astro-denoise-metrics/.venv/bin/python \
     [--reports report_raw.json,report_bm3d_t3829.json,report_unet.json] \
     [--figures-out data/curated/figures] [--refresh-sweep] \
     [--skip-sweep] [--skip-d8]
 
 # Explicación de cada métrica (delega en astro-denoise-metrics --explain)
-python -m astro_denoise_bench --explain-metrics \
+python -m astro_denoise.bench --explain-metrics \
     --metrics-python ../astro-denoise-metrics/.venv/bin/python
 
 # Crear un nuevo método con cero fricción (para otros investigadores)
-python -m astro_denoise_bench --new-method wavelet [--methods-dir /ruta]
+python -m astro_denoise.bench --new-method wavelet [--methods-dir /ruta]
 ```
 
 ## Añadir un método nuevo (cero fricción)
@@ -96,11 +96,11 @@ convenciones del boilerplate ghscaff (layout `src/`, uv, CI centralizada,
 Apache-2.0). El flujo del investigador:
 
 ```bash
-python -m astro_denoise_bench --new-method wavelet
+python -m astro_denoise.bench --new-method wavelet
 cd astro-denoise-wavelet
 uv sync --all-extras && uv run pytest        # verde desde el minuto cero
 # implementar denoise() en src/astro_denoise_wavelet/denoiser.py
-python -m astro_denoise_bench --algo wavelet --manifest data/curated/manifest.json \
+python -m astro_denoise.bench --algo wavelet --manifest data/curated/manifest.json \
     --python .venv/bin/python --metrics-python <metrics>/.venv/bin/python
 ```
 
@@ -112,7 +112,7 @@ puede publicarse como plantilla de ghscaff-boilerplate para el flujo
 ### Modo clásico (pares sintéticos)
 
 ```bash
-python -m astro_denoise_bench \
+python -m astro_denoise.bench \
     --algo bm3d \
     --data-dir /path/to/data \
     --output report.json \
@@ -158,11 +158,11 @@ una vez; cada usuario del benchmark lo descarga:
 
 ```bash
 # Usuario del benchmark: descargar el bloque curado
-python -m astro_denoise_bench --fetch-dataset <org>/astro-denoise-curated \
+python -m astro_denoise.bench --fetch-dataset <org>/astro-denoise-curated \
     --curated-out data/curated
 
 # Dueño del dataset: publicar el bloque (requiere HF_TOKEN con permiso write)
-python -m astro_denoise_bench --push-dataset <org>/astro-denoise-curated \
+python -m astro_denoise.bench --push-dataset <org>/astro-denoise-curated \
     --curated-out data/curated
 ```
 
@@ -295,7 +295,7 @@ workflow reusable [`UniverLab/workflows`](https://github.com/UniverLab/workflows
 astro-denoise-bench/
 ├── pyproject.toml
 ├── src/
-│   └── astro_denoise_bench/
+│   └── astro_denoise/bench/
 │       ├── __init__.py
 │       ├── __main__.py       # CLI entry point
 │       └── bench.py

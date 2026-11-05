@@ -19,8 +19,8 @@ metrics = ["scipy>=1.11", "sep>=1.2", "photutils>=1.10", "scikit-image>=0.22", "
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.8", "mypy>=1.13"]
 
 [project.scripts]
-astro-denoise-bench = "astro_denoise_bench.__main__:main"
-astro-denoise-metrics = "astro_denoise_metrics.__main__:main"
+astro-denoise-bench = "astro_denoise.bench.__main__:main"
+astro-denoise-metrics = "astro_denoise.metrics.__main__:main"
 
 [project.entry-points."astro_denoise.methods"]
 passthrough = "astro_denoise_passthrough.denoiser:PassthroughDenoiser"
@@ -46,7 +46,7 @@ testpaths = ["tests"]
 addopts = "--import-mode=importlib"
 
 [tool.coverage.run]
-source = ["astro_denoise_bench", "astro_denoise_metrics", "astro_denoise_passthrough"]
+source = ["astro_denoise", "astro_denoise_passthrough"]
 
 [tool.uv]
 constraint-dependencies = [

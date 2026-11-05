@@ -1,7 +1,7 @@
 """CLI: evaluate a denoised image against a truth catalog.
 
 Usage:
-    python -m astro_denoise_metrics --input denoised.fits --truth truth.fits \
+    python -m astro_denoise.metrics --input denoised.fits --truth truth.fits \
         --output results.json [--original clean.fits] [--radius 2.0]
 
 The truth file is either a FITS binary table with pixel columns x, y and
@@ -220,7 +220,7 @@ def print_summary(console, results):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        prog="python -m astro_denoise_metrics",
+        prog="python -m astro_denoise.metrics",
         description="Scientific metrics for denoised astronomical images.",
     )
     parser.add_argument("--input", type=Path, help="Denoised FITS image to evaluate")

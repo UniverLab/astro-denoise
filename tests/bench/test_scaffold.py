@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from astro_denoise_bench.scaffold import scaffold_method
+from astro_denoise.bench.scaffold import scaffold_method
 
 
 class TestScaffoldStructure:

@@ -97,7 +97,7 @@ def detect_sources(image, thresh=1.5, minarea=5, err=None):
 def source_mask(image, thresh=1.5, minarea=5, dilate=3, err=None):
     """Boolean mask that is True on detected source pixels.
 
-    Useful as the exclusion mask for :func:`~astro_denoise_metrics.sky_sigma`.
+    Useful as the exclusion mask for :func:`~astro_denoise.metrics.sky_sigma`.
     """
     from scipy.ndimage import binary_dilation
 

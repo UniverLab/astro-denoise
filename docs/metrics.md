@@ -13,7 +13,7 @@ calidad de imagen (PSNR, SSIM, σ_sky).
 uv sync --all-extras
 ```
 
-Esto crea `.venv/` e instala el paquete en modo editable (`src/astro_denoise_metrics/`)
+Esto crea `.venv/` e instala el paquete en modo editable (`src/astro_denoise/metrics/`)
 junto con las dependencias de desarrollo (pytest, ruff, mypy).
 
 ## API
@@ -41,7 +41,7 @@ opcionalmente `flux` / `mag`.
 | `project_truth(truth, wcs, shape, mag_limit=None)` | Proyecta el truth al espacio de píxeles vía WCS |
 
 ```python
-from astro_denoise_metrics import completeness, purity, detect_sources
+from astro_denoise.metrics import completeness, purity, detect_sources
 
 catalog = detect_sources(denoised_image, thresh=1.5)
 c = completeness(catalog, truth, radius=2.0)
@@ -51,7 +51,7 @@ p = purity(catalog, truth, radius=2.0)
 ## CLI
 
 ```bash
-python -m astro_denoise_metrics \
+python -m astro_denoise.metrics \
     --input denoised.fits \
     --truth truth.fits \
     --output results.json \
@@ -81,7 +81,7 @@ python -m astro_denoise_metrics \
   otros argumentos:
 
 ```bash
-python -m astro_denoise_metrics --explain
+python -m astro_denoise.metrics --explain
 ```
 
 - `--truth`: tabla binaria FITS con columnas `x`, `y`, `flux` (y opcionalmente
@@ -96,7 +96,7 @@ Si `--truth` apunta a un Parquet del DESC DC2 (`truth_tract*.parquet`, con
 sobre el WCS de la imagen `--input` y filtra a sus límites:
 
 ```bash
-python -m astro_denoise_metrics \
+python -m astro_denoise.metrics \
     --input denoised.fits \
     --truth truth_tract3828.parquet \
     --band z --mag-limit 26 \
@@ -160,7 +160,7 @@ workflow reusable [`UniverLab/workflows`](https://github.com/UniverLab/workflows
 astro-denoise-metrics/
 ├── pyproject.toml
 ├── src/
-│   └── astro_denoise_metrics/
+│   └── astro_denoise/metrics/
 │       ├── __init__.py
 │       ├── __main__.py       # CLI entry point
 │       ├── detect.py

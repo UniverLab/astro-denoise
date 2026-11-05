@@ -23,7 +23,7 @@ uv run ruff format . && uv run ruff check . && uv run mypy src/
 ## Correr en el benchmark
 
 ```bash
-python -m astro_denoise_bench \
+python -m astro_denoise.bench \
     --algo passthrough \
     --manifest data/curated/manifest.json \
     --python /ruta/a/astro-denoise-passthrough/.venv/bin/python \

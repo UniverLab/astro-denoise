@@ -7,7 +7,7 @@ import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from astro_denoise_metrics.truth import (
+from astro_denoise.metrics.truth import (
     AB_ZEROPOINT_NJY,
     flux_njy_to_mag,
     load_dc2_truth,
@@ -125,7 +125,7 @@ class TestCliParquet:
         return flux * np.exp(-((xx - x) ** 2 + (yy - y) ** 2) / (2 * sigma**2))
 
     def test_cli_end_to_end_with_parquet_truth(self, tmp_path):
-        from astro_denoise_metrics.__main__ import main
+        from astro_denoise.metrics.__main__ import main
 
         rng = np.random.default_rng(7)
         shape = (128, 128)
@@ -167,7 +167,7 @@ class TestCliParquet:
         assert results["completeness"] == pytest.approx(1.0)
 
     def test_cli_parquet_without_band_errors(self, tmp_path):
-        from astro_denoise_metrics.__main__ import main
+        from astro_denoise.metrics.__main__ import main
 
         wcs = make_wcs((32, 32))
         image_path = tmp_path / "denoised.fits"

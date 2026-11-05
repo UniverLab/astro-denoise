@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from astro_denoise_bench.bench import (
+from astro_denoise.bench.bench import (
     _fallback_psnr,
     _fallback_sky_sigma,
     collect_patches,

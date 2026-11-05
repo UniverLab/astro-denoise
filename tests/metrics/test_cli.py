@@ -7,8 +7,8 @@ import pytest
 from astropy.io import fits
 from astropy.table import Table
 
-from astro_denoise_metrics.__main__ import main
-from astro_denoise_metrics.detect import background_rms, detect_sources
+from astro_denoise.metrics.__main__ import main
+from astro_denoise.metrics.detect import background_rms, detect_sources
 
 
 def gaussian_source(shape, x, y, flux, fwhm=3.0):
@@ -151,8 +151,8 @@ def test_cli_reports_error_on_missing_input(tmp_path, capsys):
 
 
 def test_cli_explain_lists_all_metrics(capsys):
-    from astro_denoise_metrics.__main__ import main
-    from astro_denoise_metrics.explain import METRIC_INFO
+    from astro_denoise.metrics.__main__ import main
+    from astro_denoise.metrics.explain import METRIC_INFO
 
     assert main(["--explain"]) == 0
     out = capsys.readouterr().out
@@ -163,7 +163,7 @@ def test_cli_explain_lists_all_metrics(capsys):
 def test_cli_missing_args_without_explain_errors():
     import pytest
 
-    from astro_denoise_metrics.__main__ import main
+    from astro_denoise.metrics.__main__ import main
 
     with pytest.raises(SystemExit):
         main([])

@@ -7,7 +7,7 @@ sharpness S_F, the aperture FLUX-SNR and the detection-rate sweep.
 import numpy as np
 import pytest
 
-from astro_denoise_metrics import (
+from astro_denoise.metrics import (
     detect_sources,
     detection_rate,
     flux_snr,

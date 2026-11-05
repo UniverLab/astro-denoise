@@ -2,24 +2,24 @@
 
 Usage:
     # classic patch-pair mode
-    python -m astro_denoise_bench --algo bm3d --data-dir /path/to/data \
+    python -m astro_denoise.bench --algo bm3d --data-dir /path/to/data \
         --output report.json [--config config.json] [--python /venv/bin/python]
 
     # curate the heterogeneous DC2 region block
-    python -m astro_denoise_bench --curate --coadd-root data/coadd-... \
+    python -m astro_denoise.bench --curate --coadd-root data/coadd-... \
         --truth-root data/truth_match --curated-out data/curated
 
     # benchmark over the curated block with the real metrics engine
-    python -m astro_denoise_bench --algo bm3d --manifest data/curated/manifest.json \
+    python -m astro_denoise.bench --algo bm3d --manifest data/curated/manifest.json \
         --metrics-python ../astro-denoise-metrics/.venv/bin/python \
         --python ../astro-denoise-bm3d/.venv/bin/python --previews
 
-    python -m astro_denoise_bench --list    # show discovered method modules
-    python -m astro_denoise_bench --tui     # interactive dashboard
+    python -m astro_denoise.bench --list    # show discovered method modules
+    python -m astro_denoise.bench --tui     # interactive dashboard
 
     # render paper figures from completed reports (default: the three
     # t3829 reports under --curated-out)
-    python -m astro_denoise_bench --figures --curated-out data/curated
+    python -m astro_denoise.bench --figures --curated-out data/curated
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ def emit(payload):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        prog="python -m astro_denoise_bench",
+        prog="python -m astro_denoise.bench",
         description="Orchestrate denoising benchmarks over FITS patch datasets.",
     )
     parser.add_argument("--algo", help="Algorithm name (e.g. bm3d, unet)")
@@ -314,7 +314,7 @@ def main(argv=None):
     if args.explain_metrics:
         import subprocess
 
-        cmd = [args.metrics_python or sys.executable, "-m", "astro_denoise_metrics", "--explain"]
+        cmd = [args.metrics_python or sys.executable, "-m", "astro_denoise.metrics", "--explain"]
         return subprocess.run(cmd).returncode
 
     if args.fetch_dataset or args.push_dataset:

@@ -10,14 +10,14 @@ import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from astro_denoise_bench.bench import (
+from astro_denoise.bench.bench import (
     discover_method_config,
     parse_mag_limit,
     run_curated_benchmark,
     summarize_curated,
 )
-from astro_denoise_bench.dc2 import curate, discover_coadds, load_manifest, random_positions
-from astro_denoise_bench.tui import (
+from astro_denoise.bench.dc2 import curate, discover_coadds, load_manifest, random_positions
+from astro_denoise.bench.tui import (
     comparison_rows,
     dataset_rows,
     dataset_summary,
@@ -233,12 +233,13 @@ def fake_modules(tmp_path, monkeypatch):
     root = tmp_path / "modules"
     for name, body in (
         ("astro_denoise_fake", FAKE_METHOD),
-        ("astro_denoise_metrics", FAKE_METRICS),
+        ("astro_denoise.metrics", FAKE_METRICS),
     ):
-        pkg = root / name
+        pkg = root / name.replace(".", "/")
         pkg.mkdir(parents=True)
         (pkg / "__init__.py").write_text("")
         (pkg / "__main__.py").write_text(textwrap.dedent(body))
+    (root / "astro_denoise" / "__init__.py").write_text("")
     monkeypatch.setenv("PYTHONPATH", str(root))
     return root
 
@@ -476,7 +477,7 @@ class TestHfDistribution:
 
         stub = types.SimpleNamespace(snapshot_download=fake_snapshot_download)
         monkeypatch.setitem(sys.modules, "huggingface_hub", stub)
-        from astro_denoise_bench.hf import fetch_curated
+        from astro_denoise.bench.hf import fetch_curated
 
         with pytest.raises(FileNotFoundError, match="manifest.json"):
             fetch_curated("user/astro-denoise-curated", tmp_path / "dl")
@@ -492,14 +493,14 @@ class TestHfDistribution:
 
         stub = types.SimpleNamespace(snapshot_download=fake_snapshot_download)
         monkeypatch.setitem(sys.modules, "huggingface_hub", stub)
-        from astro_denoise_bench.hf import fetch_curated
+        from astro_denoise.bench.hf import fetch_curated
 
         manifest = fetch_curated("user/astro-denoise-curated", tmp_path / "dl")
         assert manifest.name == "manifest.json"
         assert manifest.exists()
 
     def test_push_requires_manifest(self, tmp_path):
-        from astro_denoise_bench.hf import push_curated
+        from astro_denoise.bench.hf import push_curated
 
         with pytest.raises(FileNotFoundError, match="curate first"):
             push_curated("user/astro-denoise-curated", tmp_path)
@@ -524,7 +525,7 @@ class TestHfDistribution:
 
         stub = types.SimpleNamespace(HfApi=FakeApi)
         monkeypatch.setitem(sys.modules, "huggingface_hub", stub)
-        from astro_denoise_bench.hf import push_curated
+        from astro_denoise.bench.hf import push_curated
 
         (tmp_path / "manifest.json").write_text("{}")
         url = push_curated("user/astro-denoise-curated", tmp_path)

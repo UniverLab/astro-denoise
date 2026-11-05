@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from astro_denoise_bench import figures as fig
+from astro_denoise.bench import figures as fig
 
 
 def _png_written(path):
