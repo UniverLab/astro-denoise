@@ -1,0 +1,411 @@
+[
+  {
+    "option_strings": [
+      "-h",
+      "--help"
+    ],
+    "dest": "help",
+    "default": "'==SUPPRESS=='",
+    "nargs": 0,
+    "const": "None",
+    "type": null,
+    "help": "show this help message and exit",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--algo"
+    ],
+    "dest": "algo",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Algorithm name (e.g. bm3d, unet)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--data-dir"
+    ],
+    "dest": "data_dir",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Directory with *_noisy.fits / *_clean.fits patches",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--manifest"
+    ],
+    "dest": "manifest",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Curated-block manifest.json (alternative to --data-dir)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--output"
+    ],
+    "dest": "output",
+    "default": "PosixPath('report.json')",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Path of the JSON report (default: report.json)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--config"
+    ],
+    "dest": "config",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Config JSON forwarded to the method module",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--out-dir"
+    ],
+    "dest": "out_dir",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Where to write denoised patches",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--python"
+    ],
+    "dest": "python",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Interpreter used to invoke the method module (e.g. the module's own .venv/bin/python)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--metrics-python"
+    ],
+    "dest": "metrics_python",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Interpreter of the astro-denoise-metrics venv (manifest mode)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--bands"
+    ],
+    "dest": "bands",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Comma-separated band filter for manifest mode (e.g. 'z,r')",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--tracts"
+    ],
+    "dest": "tracts",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Comma-separated tract filter for manifest mode (e.g. '3829'); use it to evaluate only on tracts held out from a method's training",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--mag-limit"
+    ],
+    "dest": "mag_limit",
+    "default": "26.0",
+    "nargs": null,
+    "const": "None",
+    "type": "parse_mag_limit",
+    "help": "Truth AB magnitude cut (manifest mode): one value for all bands (e.g. '26') or per-band 'u:24.5,g:25.8,z:26'",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--thresh"
+    ],
+    "dest": "thresh",
+    "default": "1.5",
+    "nargs": null,
+    "const": "None",
+    "type": "float",
+    "help": "Detection threshold forwarded to metrics",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--previews"
+    ],
+    "dest": "previews",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Render before/after/residual PNGs per region",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--list"
+    ],
+    "dest": "list",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "List discovered astro-denoise method modules",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--tui"
+    ],
+    "dest": "tui",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Launch the interactive dashboard",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--explain-metrics"
+    ],
+    "dest": "explain_metrics",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Describe every metric (delegates to the metrics module; honors --metrics-python)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--new-method"
+    ],
+    "dest": "new_method",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Scaffold a ready-to-run astro-denoise-<NAME> method module (zero friction)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--methods-dir"
+    ],
+    "dest": "methods_dir",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Where to create the scaffolded method (default: current directory)",
+    "group": "options"
+  },
+  {
+    "option_strings": [
+      "--fetch-dataset"
+    ],
+    "dest": "fetch_dataset",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Download the curated block from a HF dataset repo into --curated-out",
+    "group": "Hugging Face distribution"
+  },
+  {
+    "option_strings": [
+      "--push-dataset"
+    ],
+    "dest": "push_dataset",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Upload the curated block in --curated-out to a HF dataset repo (owner only)",
+    "group": "Hugging Face distribution"
+  },
+  {
+    "option_strings": [
+      "--curate"
+    ],
+    "dest": "curate",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Build the curated DC2 region block",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--coadd-root"
+    ],
+    "dest": "coadd_root",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "DC2 coadd root (has deepCoadd/)",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--truth-root"
+    ],
+    "dest": "truth_root",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Directory with truth_tract*.parquet",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--curated-out"
+    ],
+    "dest": "curated_out",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Output directory for the block",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--size"
+    ],
+    "dest": "size",
+    "default": "256",
+    "nargs": null,
+    "const": "None",
+    "type": "int",
+    "help": "Cutout size in pixels",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--regions-per-image"
+    ],
+    "dest": "regions_per_image",
+    "default": "3",
+    "nargs": null,
+    "const": "None",
+    "type": "int",
+    "help": "Cutouts sampled per coadd image",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--seed"
+    ],
+    "dest": "seed",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "int",
+    "help": "Sampling seed; omit for a fresh one (recorded in the manifest)",
+    "group": "dataset curation (--curate)"
+  },
+  {
+    "option_strings": [
+      "--figures"
+    ],
+    "dest": "figures",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Render paper figures from completed reports",
+    "group": "paper figures (--figures)"
+  },
+  {
+    "option_strings": [
+      "--reports"
+    ],
+    "dest": "reports",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": null,
+    "help": "Comma-separated report JSON paths (default: the three t3829 reports report_raw.json, report_bm3d_t3829.json, report_unet.json under --curated-out)",
+    "group": "paper figures (--figures)"
+  },
+  {
+    "option_strings": [
+      "--figures-out"
+    ],
+    "dest": "figures_out",
+    "default": "None",
+    "nargs": null,
+    "const": "None",
+    "type": "Path",
+    "help": "Output directory for figures (default: <curated-out>/figures)",
+    "group": "paper figures (--figures)"
+  },
+  {
+    "option_strings": [
+      "--refresh-sweep"
+    ],
+    "dest": "refresh_sweep",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Force re-running the threshold-sweep and D8 radius-sensitivity metrics instead of reusing the cached JSON",
+    "group": "paper figures (--figures)"
+  },
+  {
+    "option_strings": [
+      "--skip-sweep"
+    ],
+    "dest": "skip_sweep",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Skip the threshold-sweep figures (only the pure completeness_vs_mag and tradeoff figures, no metrics re-run)",
+    "group": "paper figures (--figures)"
+  },
+  {
+    "option_strings": [
+      "--skip-d8"
+    ],
+    "dest": "skip_d8",
+    "default": "False",
+    "nargs": 0,
+    "const": "True",
+    "type": null,
+    "help": "Skip the D8 matching-radius-sensitivity figure",
+    "group": "paper figures (--figures)"
+  }
+]

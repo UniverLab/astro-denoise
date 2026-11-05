@@ -76,11 +76,7 @@ def emit(payload):
     print(json.dumps(payload))
 
 
-def build_parser():
-    parser = argparse.ArgumentParser(
-        prog="python -m astro_denoise.bench",
-        description="Orchestrate denoising benchmarks over FITS patch datasets.",
-    )
+def _add_run_arguments(parser):
     parser.add_argument("--algo", help="Algorithm name (e.g. bm3d, unet)")
     parser.add_argument(
         "--data-dir", type=Path, help="Directory with *_noisy.fits / *_clean.fits patches"
@@ -143,6 +139,8 @@ def build_parser():
         help="Describe every metric (delegates to the metrics module; honors --metrics-python)",
     )
 
+
+def _add_scaffold_arguments(parser):
     parser.add_argument(
         "--new-method",
         metavar="NAME",
@@ -155,6 +153,8 @@ def build_parser():
         help="Where to create the scaffolded method (default: current directory)",
     )
 
+
+def _add_distribution_arguments(parser):
     hf_group = parser.add_argument_group("Hugging Face distribution")
     hf_group.add_argument(
         "--fetch-dataset",
@@ -167,6 +167,8 @@ def build_parser():
         help="Upload the curated block in --curated-out to a HF dataset repo (owner only)",
     )
 
+
+def _add_curation_arguments(parser):
     curate_group = parser.add_argument_group("dataset curation (--curate)")
     curate_group.add_argument(
         "--curate", action="store_true", help="Build the curated DC2 region block"
@@ -185,6 +187,8 @@ def build_parser():
         help="Sampling seed; omit for a fresh one (recorded in the manifest)",
     )
 
+
+def _add_figures_arguments(parser):
     figures_group = parser.add_argument_group("paper figures (--figures)")
     figures_group.add_argument(
         "--figures", action="store_true", help="Render paper figures from completed reports"
@@ -216,6 +220,18 @@ def build_parser():
     figures_group.add_argument(
         "--skip-d8", action="store_true", help="Skip the D8 matching-radius-sensitivity figure"
     )
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="python -m astro_denoise.bench",
+        description="Orchestrate denoising benchmarks over FITS patch datasets.",
+    )
+    _add_run_arguments(parser)
+    _add_scaffold_arguments(parser)
+    _add_distribution_arguments(parser)
+    _add_curation_arguments(parser)
+    _add_figures_arguments(parser)
     return parser
 
 
@@ -282,97 +298,98 @@ def run_figures_mode(console, args, parser):
     return 0
 
 
-def main(argv=None):
-    console = Console(stderr=True)
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def _report_error(console, exc):
+    console.print(f"[red]error:[/red] {exc}")
+    emit({"status": "error", "error": str(exc)})
+    return 1
 
-    if args.tui:
-        from .tui import run_tui
 
-        return run_tui(manifest_path=args.manifest)
+def _handle_tui(console, args, parser):
+    from .tui import run_tui
 
-    if args.new_method:
-        from .scaffold import scaffold_method
+    return run_tui(manifest_path=args.manifest)
 
-        try:
-            repo_dir = scaffold_method(args.new_method, out_dir=args.methods_dir)
-        except (ValueError, FileExistsError) as exc:
-            console.print(f"[red]error:[/red] {exc}")
-            emit({"status": "error", "error": str(exc)})
-            return 1
-        console.print(
-            f"[green]scaffolded[/green] {repo_dir}\n"
-            f"next steps:\n"
-            f"  cd {repo_dir}\n"
-            f"  uv sync --all-extras && uv run pytest   # ya pasa\n"
-            f"  # implementa denoise() en src/astro_denoise_{args.new_method}/denoiser.py"
-        )
-        emit({"status": "ok", "scaffold": str(repo_dir), "algorithm": args.new_method})
-        return 0
 
-    if args.explain_metrics:
-        import subprocess
+def _handle_new_method(console, args, parser):
+    from .scaffold import scaffold_method
 
-        cmd = [args.metrics_python or sys.executable, "-m", "astro_denoise.metrics", "--explain"]
-        return subprocess.run(cmd).returncode
+    try:
+        repo_dir = scaffold_method(args.new_method, out_dir=args.methods_dir)
+    except (ValueError, FileExistsError) as exc:
+        return _report_error(console, exc)
+    console.print(
+        f"[green]scaffolded[/green] {repo_dir}\n"
+        f"next steps:\n"
+        f"  cd {repo_dir}\n"
+        f"  uv sync --all-extras && uv run pytest   # ya pasa\n"
+        f"  # implementa denoise() en src/astro_denoise_{args.new_method}/denoiser.py"
+    )
+    emit({"status": "ok", "scaffold": str(repo_dir), "algorithm": args.new_method})
+    return 0
 
-    if args.fetch_dataset or args.push_dataset:
-        from .hf import fetch_curated, push_curated
 
-        out = args.curated_out or Path("data/curated")
-        try:
-            if args.fetch_dataset:
-                manifest_path = fetch_curated(args.fetch_dataset, out)
-                manifest = load_manifest(manifest_path)
-                console.print(
-                    f"[green]fetched[/green] {manifest['n_regions']} regions "
-                    f"({', '.join(manifest['bands'])}) -> {manifest_path}"
-                )
-                emit(
-                    {
-                        "status": "ok",
-                        "manifest": str(manifest_path),
-                        "n_regions": manifest["n_regions"],
-                        "bands": manifest["bands"],
-                    }
-                )
-            else:
-                url = push_curated(args.push_dataset, out)
-                console.print(f"[green]pushed[/green] {out} -> {url}")
-                emit({"status": "ok", "dataset": url})
-            return 0
-        except Exception as exc:
-            console.print(f"[red]error:[/red] {exc}")
-            emit({"status": "error", "error": str(exc)})
-            return 1
+def _handle_explain_metrics(console, args, parser):
+    import subprocess
 
-    if args.list:
-        methods = discover_methods()
-        if methods:
-            for name, ep in sorted(methods.items()):
-                console.print(f"[bold]{name}[/bold] -> {ep.value}")
+    cmd = [args.metrics_python or sys.executable, "-m", "astro_denoise.metrics", "--explain"]
+    return subprocess.run(cmd).returncode
+
+
+def _handle_dataset_transfer(console, args, parser):
+    from .hf import fetch_curated, push_curated
+
+    out = args.curated_out or Path("data/curated")
+    try:
+        if args.fetch_dataset:
+            manifest_path = fetch_curated(args.fetch_dataset, out)
+            manifest = load_manifest(manifest_path)
+            console.print(
+                f"[green]fetched[/green] {manifest['n_regions']} regions "
+                f"({', '.join(manifest['bands'])}) -> {manifest_path}"
+            )
+            emit(
+                {
+                    "status": "ok",
+                    "manifest": str(manifest_path),
+                    "n_regions": manifest["n_regions"],
+                    "bands": manifest["bands"],
+                }
+            )
         else:
-            console.print("no astro_denoise.methods entry points installed")
-        emit({"status": "ok", "methods": sorted(methods)})
+            url = push_curated(args.push_dataset, out)
+            console.print(f"[green]pushed[/green] {out} -> {url}")
+            emit({"status": "ok", "dataset": url})
         return 0
+    except Exception as exc:
+        return _report_error(console, exc)
 
-    if args.curate:
-        try:
-            return run_curate_mode(console, args, parser)
-        except Exception as exc:
-            console.print(f"[red]error:[/red] {exc}")
-            emit({"status": "error", "error": str(exc)})
-            return 1
 
-    if args.figures:
-        try:
-            return run_figures_mode(console, args, parser)
-        except Exception as exc:
-            console.print(f"[red]error:[/red] {exc}")
-            emit({"status": "error", "error": str(exc)})
-            return 1
+def _handle_list(console, args, parser):
+    methods = discover_methods()
+    if methods:
+        for name, ep in sorted(methods.items()):
+            console.print(f"[bold]{name}[/bold] -> {ep.value}")
+    else:
+        console.print("no astro_denoise.methods entry points installed")
+    emit({"status": "ok", "methods": sorted(methods)})
+    return 0
 
+
+def _handle_curate(console, args, parser):
+    try:
+        return run_curate_mode(console, args, parser)
+    except Exception as exc:
+        return _report_error(console, exc)
+
+
+def _handle_figures(console, args, parser):
+    try:
+        return run_figures_mode(console, args, parser)
+    except Exception as exc:
+        return _report_error(console, exc)
+
+
+def _handle_run(console, args, parser):
     if not args.algo or not (args.data_dir or args.manifest):
         parser.error(
             "--algo with --data-dir or --manifest is required (or --list/--curate/--figures/--tui)"
@@ -411,9 +428,7 @@ def main(argv=None):
                 progress=progress,
             )
     except Exception as exc:
-        console.print(f"[red]error:[/red] {exc}")
-        emit({"status": "error", "error": str(exc)})
-        return 1
+        return _report_error(console, exc)
 
     report["version"] = __version__
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -421,6 +436,28 @@ def main(argv=None):
     print_report(console, report)
     emit({"status": "ok", "report": str(args.output), "summary": report["summary"]})
     return 0
+
+
+def main(argv=None):
+    console = Console(stderr=True)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.tui:
+        return _handle_tui(console, args, parser)
+    if args.new_method:
+        return _handle_new_method(console, args, parser)
+    if args.explain_metrics:
+        return _handle_explain_metrics(console, args, parser)
+    if args.fetch_dataset or args.push_dataset:
+        return _handle_dataset_transfer(console, args, parser)
+    if args.list:
+        return _handle_list(console, args, parser)
+    if args.curate:
+        return _handle_curate(console, args, parser)
+    if args.figures:
+        return _handle_figures(console, args, parser)
+    return _handle_run(console, args, parser)
 
 
 if __name__ == "__main__":
