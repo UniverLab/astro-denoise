@@ -10,6 +10,7 @@ import pytest
 from astro_denoise.bench.scaffold import _files, scaffold_method
 
 SNAPSHOT = Path(__file__).parent / "snapshots" / "scaffold_wavelet.json"
+ROOT_LICENSE = Path(__file__).parents[2] / "LICENSE"
 WAVELET_ARGS = ("wavelet", "wavelet denoising method for the astro-denoise benchmark")
 PLACEHOLDERS = ("@PKG@", "@REPO@", "@NAME@", "@NAME_CAP@", "@DESCRIPTION@")
 
@@ -57,6 +58,14 @@ class TestGeneratedContent:
         for path, content in _files(*WAVELET_ARGS).items():
             for placeholder in PLACEHOLDERS:
                 assert placeholder not in content, f"{placeholder} left in {path}"
+
+    def test_generated_license_is_the_repository_license(self):
+        assert _files(*WAVELET_ARGS)["LICENSE"] == ROOT_LICENSE.read_text(encoding="utf-8")
+
+    def test_pyproject_declares_apache_license(self):
+        pyproject = _files(*WAVELET_ARGS)["pyproject.toml"]
+        assert 'license = "Apache-2.0"' in pyproject
+        assert "MIT" not in pyproject
 
 
 class TestScaffoldRunsOutOfTheBox:
