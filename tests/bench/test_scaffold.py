@@ -54,6 +54,14 @@ class TestGeneratedContent:
         assert list(rendered) == list(expected)
         assert rendered == expected
 
+    def test_readme_points_at_the_unified_core_metrics(self):
+        readme = _files(*WAVELET_ARGS)["README.md"]
+        assert "astro-denoise-metrics" not in readme
+        assert "--metrics-python" not in readme
+        assert "python -m astro_denoise.bench" in readme
+        assert "astro_denoise.metrics" in readme
+        assert "uv sync --all-extras" in readme
+
     def test_no_unreplaced_placeholders(self):
         for path, content in _files(*WAVELET_ARGS).items():
             for placeholder in PLACEHOLDERS:
