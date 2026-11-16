@@ -10,6 +10,7 @@ import pytest
 from astro_denoise.bench.scaffold import _files, scaffold_method
 
 SNAPSHOT = Path(__file__).parent / "snapshots" / "scaffold_wavelet.json"
+ROOT_LICENSE = Path(__file__).parents[2] / "LICENSE"
 WAVELET_ARGS = ("wavelet", "wavelet denoising method for the astro-denoise benchmark")
 PLACEHOLDERS = ("@PKG@", "@REPO@", "@NAME@", "@NAME_CAP@", "@DESCRIPTION@")
 
@@ -53,10 +54,26 @@ class TestGeneratedContent:
         assert list(rendered) == list(expected)
         assert rendered == expected
 
+    def test_readme_points_at_the_unified_core_metrics(self):
+        readme = _files(*WAVELET_ARGS)["README.md"]
+        assert "astro-denoise-metrics" not in readme
+        assert "--metrics-python" not in readme
+        assert "python -m astro_denoise.bench" in readme
+        assert "astro_denoise.metrics" in readme
+        assert "uv sync --all-extras" in readme
+
     def test_no_unreplaced_placeholders(self):
         for path, content in _files(*WAVELET_ARGS).items():
             for placeholder in PLACEHOLDERS:
                 assert placeholder not in content, f"{placeholder} left in {path}"
+
+    def test_generated_license_is_the_repository_license(self):
+        assert _files(*WAVELET_ARGS)["LICENSE"] == ROOT_LICENSE.read_text(encoding="utf-8")
+
+    def test_pyproject_declares_apache_license(self):
+        pyproject = _files(*WAVELET_ARGS)["pyproject.toml"]
+        assert 'license = "Apache-2.0"' in pyproject
+        assert "MIT" not in pyproject
 
 
 class TestScaffoldRunsOutOfTheBox:
