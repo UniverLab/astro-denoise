@@ -1,6 +1,6 @@
-# astro-denoise-metrics
+# Módulo de métricas astro-denoise
 
-> Módulo de métricas downstream científico para el benchmark astro-denoise.
+> Módulo de métricas científico para el benchmark astro-denoise.
 
 Implementa la capa de evaluación de la plataforma astro-denoise:
 mide cómo un método de denoising afecta la **recuperación de fuentes**
@@ -112,7 +112,7 @@ python -m astro_denoise.metrics \
 - Con truth DC2, `photometric_accuracy` compara flujo instrumental (ADU)
   contra nJy: solo la dispersión relativa es interpretable, no el bias.
 - `results.json` contiene todas las métricas; stdout emite una línea JSON de
-  estado (`{"module": "astro-denoise-metrics", "status": "ok", ...}`) para que
+  estado (`{"module": "astro_denoise.metrics", "status": "ok", ...}`) para que
   orquestadores como `astro-denoise-bench` parseen el resultado.
 - El resumen legible se imprime por stderr vía `rich`.
 
@@ -120,7 +120,7 @@ python -m astro_denoise.metrics \
 
 ```json
 {
-  "module": "astro-denoise-metrics",
+  "module": "astro_denoise.metrics",
   "version": "0.4.0",
   "n_detected": 142,
   "n_truth": 150,
@@ -157,17 +157,14 @@ workflow reusable [`UniverLab/workflows`](https://github.com/UniverLab/workflows
 ## Estructura del proyecto
 
 ```
-astro-denoise-metrics/
-├── pyproject.toml
-├── src/
-│   └── astro_denoise/metrics/
-│       ├── __init__.py
-│       ├── __main__.py       # CLI entry point
-│       ├── detect.py
-│       └── metrics.py
-├── tests/
-└── README.md
+src/astro_denoise/metrics/
+├── __init__.py
+├── __main__.py       # CLI entry point
+├── detect.py
+├── explain.py
+├── metrics.py
+└── truth.py
 ```
 
 ---
-Este submódulo forma parte de la plataforma `astro-denoise`.
+Este módulo forma parte de la plataforma `astro-denoise`.

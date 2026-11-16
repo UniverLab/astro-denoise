@@ -19,9 +19,10 @@ computacionales desde fuera del proceso Python; el protocolo CLI es el mismo.)
 - **Ejecución** — lanza cada algoritmo como proceso aislado con el protocolo
   CLI estándar (cada módulo conserva su propio venv) y mide tiempo de pared
   y memoria pico RSS (GNU time).
-- **Evaluación** — en modo curado invoca el CLI de `astro-denoise-metrics`
-  (su propio venv) contra el truth catalog Parquet real, por región y banda;
-  en modo clásico usa PSNR/SSIM/σ_sky con fallback numpy. El umbral de
+- **Evaluación** — en modo curado invoca `python -m astro_denoise.metrics`
+  (mismo intérprete del bench, extra `metrics`) contra el truth catalog
+  Parquet real, por región y banda; en modo clásico usa PSNR/SSIM/σ_sky
+  con fallback numpy. El umbral de
   detección se ancla al RMS de fondo de la **región de entrada** (se pasa
   `--thresh-image` a metrics), de modo que todos los métodos se evalúan a la
   misma profundidad absoluta: un método que aplasta el fondo ya no "detecta
@@ -61,7 +62,6 @@ python -m astro_denoise.bench \
     --algo bm3d \
     --manifest data/curated/manifest.json \
     --python ../astro-denoise-bm3d/.venv/bin/python \
-    --metrics-python ../astro-denoise-metrics/.venv/bin/python \
     [--bands z,r] [--tracts 3829] [--mag-limit 26] [--previews] \
     --output data/curated/report_bm3d.json
 
@@ -74,14 +74,12 @@ python -m astro_denoise.bench --tui --manifest data/curated/manifest.json
 
 # 4) Figuras del paper a partir de reportes ya completados
 python -m astro_denoise.bench --figures --curated-out data/curated \
-    --metrics-python ../astro-denoise-metrics/.venv/bin/python \
     [--reports report_raw.json,report_bm3d_t3829.json,report_unet.json] \
     [--figures-out data/curated/figures] [--refresh-sweep] \
     [--skip-sweep] [--skip-d8]
 
-# Explicación de cada métrica (delega en astro-denoise-metrics --explain)
-python -m astro_denoise.bench --explain-metrics \
-    --metrics-python ../astro-denoise-metrics/.venv/bin/python
+# Explicación de cada métrica (delega en python -m astro_denoise.metrics --explain)
+python -m astro_denoise.bench --explain-metrics
 
 # Crear un nuevo método con cero fricción (para otros investigadores)
 python -m astro_denoise.bench --new-method wavelet [--methods-dir /ruta]
@@ -100,8 +98,10 @@ python -m astro_denoise.bench --new-method wavelet
 cd astro-denoise-wavelet
 uv sync --all-extras && uv run pytest        # verde desde el minuto cero
 # implementar denoise() en src/astro_denoise_wavelet/denoiser.py
-python -m astro_denoise.bench --algo wavelet --manifest data/curated/manifest.json \
-    --python .venv/bin/python --metrics-python <metrics>/.venv/bin/python
+cd ..
+python -m astro_denoise.bench --algo wavelet \
+    --manifest data/curated/manifest.json \
+    --python astro-denoise-wavelet/.venv/bin/python
 ```
 
 El esqueleto sin modificar es un pass-through: corre el benchmark tal cual y
@@ -120,9 +120,10 @@ python -m astro_denoise.bench \
     [--python ../astro-denoise-bm3d/.venv/bin/python]
 ```
 
-- `--python` / `--metrics-python` apuntan al intérprete del venv propio de
-  cada módulo; por defecto usan el intérprete actual. Así cada módulo mantiene
-  sus dependencias aisladas.
+- `--python` apunta al intérprete del venv propio del módulo; por defecto usa
+  el intérprete actual. Las métricas corren en el mismo intérprete del bench
+  (`astro_denoise.metrics`, extra `metrics`). Así cada módulo mantiene sus
+  dependencias aisladas.
 - `--config` se reenvía tal cual al módulo del método.
 - En modo curado, si no se pasa `--config` y existe `<algo>_config.json`
   junto al manifest (p. ej. `bm3d_config.json` con
@@ -264,8 +265,7 @@ metadatos del método, métricas) y un bloque `summary`:
   umbrales del barrido, banda de D8).
 
 `--skip-sweep` y `--skip-d8` permiten quedarse solo con las figuras puras
-(sin relanzar métricas). `--metrics-python` es el mismo intérprete que en
-el modo `--manifest`.
+(sin relanzar métricas).
 
 ## Tests
 

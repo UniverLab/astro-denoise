@@ -22,19 +22,23 @@ uv run ruff format . && uv run ruff check . && uv run mypy src/
 
 ## Correr en el benchmark
 
+El bench y las métricas son el mismo paquete `astro-denoise`; prepara el
+checkout core una vez y corre desde ahí:
+
 ```bash
-python -m astro_denoise.bench \
+cd /ruta/a/astro-denoise
+uv sync --all-extras
+uv run python -m astro_denoise.bench \
     --algo passthrough \
     --manifest data/curated/manifest.json \
-    --python /ruta/a/astro-denoise-passthrough/.venv/bin/python \
-    --metrics-python /ruta/a/astro-denoise-metrics/.venv/bin/python
+    --python /ruta/a/astro-denoise-passthrough/.venv/bin/python
 ```
 
-El orquestador invoca `python -m astro_denoise_passthrough --input ... --output ... [--config ...]`
-y espera una línea JSON de status por stdout (ya implementada en `__main__.py`).
+`--python` es el `.venv` de este método; las métricas usan el intérprete del
+bench (`astro_denoise.metrics`, extra `metrics`), sin otro venv.
 
 ## Protocolo
 
 - Entry point `astro_denoise.methods` -> `passthrough` (descubrimiento automático).
 - Contrato `DenoiseMethod` en `src/astro_denoise_passthrough/interface.py`.
-- Las métricas del benchmark se explican con `astro-denoise-metrics --explain`.
+- Métricas: `python -m astro_denoise.metrics --explain`.
